@@ -1,0 +1,30 @@
+name: Docker build
+
+'on':
+    schedule:
+      - cron: '30 5 * * 1'  # Every Monday at 5:30
+    pull_request:
+    push:
+        branches:
+          - main
+          - develop
+          - feature/**
+
+jobs:
+  test-paste-service:
+    uses: ./.github/workflows/build-test-service.yml
+    with:
+      service-path: paste-service
+      build-type: debug
+      run-tests: true
+      run-in-docker: true
+
+  build-release:
+    if: github.ref == 'refs/heads/main'
+    needs: test-paste-service
+    uses: ./.github/workflows/build-test-service.yml
+    with:
+      service-path: paste-service
+      build-type: release
+      run-tests: false
+      run-in-docker: true
