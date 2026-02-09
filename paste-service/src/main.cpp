@@ -13,9 +13,7 @@
 
 #include <userver/utils/daemon_run.hpp>
 
-#include <hello.hpp>
-#include <hello_mongo.hpp>    
-#include <hello_postgres.hpp> 
+#include "handlers/get_paste.hpp"
 
 int main(int argc, char* argv[]) {
     auto component_list =
@@ -26,11 +24,9 @@ int main(int argc, char* argv[]) {
             .Append<userver::clients::dns::Component>()
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
-            .Append<paste_service::Hello>()
+            .Append<paste_service::GetPaste>()
             .Append<userver::components::Postgres>("postgres-db-1")
-            .Append<paste_service::HelloPostgres>()
             .Append<userver::components::Mongo>("mongo-db-1")
-            .Append<paste_service::HelloMongo>()
         ;
 
     return userver::utils::DaemonMain(argc, argv, component_list);
