@@ -37,4 +37,11 @@ utils::expected<PasteBlob, GetPasteBlobError> BlobRepo::GetPasteBlob(const std::
     }
 }
 
+std::optional<PostPasteBlobError> BlobRepo::PostPasteBlob(const PasteBlob&) const {
+    using formats::bson::MakeDoc;
+
+    // TODO
+    return std::nullopt;
+}
+
 }

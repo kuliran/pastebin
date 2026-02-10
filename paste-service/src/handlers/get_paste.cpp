@@ -1,5 +1,5 @@
 #include "handlers/get_paste.hpp"
-#include "dto/paste_response.hpp"
+#include "dto/get_paste_response.hpp"
 
 using namespace userver;
 
@@ -58,7 +58,7 @@ formats::json::Value GetPaste::
         }
     }
 
-    auto res = dto::MakePasteResponse(metadata.value(), blob.value());
+    auto res = dto::MakeGetPasteResponse(metadata.value(), blob.value());
     return formats::json::ValueBuilder(res).ExtractValue();
 }
 

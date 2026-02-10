@@ -7,14 +7,14 @@
 
 namespace paste_service::dto {
 
-struct PasteResponse {
+struct GetPasteResponse {
     std::chrono::system_clock::time_point created_at;
     std::chrono::system_clock::time_point expires_at;
     std::string text;
     int size_bytes;
 };
 
-inline PasteResponse MakePasteResponse(
+inline GetPasteResponse MakeGetPasteResponse(
     const PasteMetadata& meta,
     const PasteBlob& blob
 ) {
@@ -31,7 +31,7 @@ inline PasteResponse MakePasteResponse(
 namespace userver::formats::serialize {
 
 inline userver::formats::json::Value Serialize(
-    const paste_service::dto::PasteResponse& p,
+    const paste_service::dto::GetPasteResponse& p,
     To<userver::formats::json::Value>
 ) {
     userver::formats::json::ValueBuilder b;

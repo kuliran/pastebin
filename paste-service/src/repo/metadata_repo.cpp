@@ -40,4 +40,8 @@ utils::expected<PasteMetadata, GetPasteMetadataError>
     }
 }
 
+std::optional<PostPasteMetadataError> MetadataRepo::PostPasteMetadata(const PasteMetadata& metadata) const {
+    return std::nullopt;
+}
+
 }

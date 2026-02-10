@@ -13,11 +13,16 @@ enum class GetPasteBlobError {
     kInvalidData,
 };
 
+enum class PostPasteBlobError {
+    kDbError,
+};
+
 class BlobRepo {
 public:
     BlobRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::utils::expected<PasteBlob, GetPasteBlobError> GetPasteBlob(const std::string_view& id) const;
+    std::optional<PostPasteBlobError> PostPasteBlob(const PasteBlob&) const;
 private:
     static constexpr std::string_view kDefaultMongoComponent = "mongo-db-1";
 
