@@ -1,0 +1,19 @@
+{
+  "postgresql_settings": {
+    "databases": {
+      "pg_pastes_db_1": [
+        {
+          "shard_number" : 0,
+          "hosts": [
+            "postgresql://testsuite@localhost:15433/pg_pastes_db_1"
+          ]
+        }
+      ]
+    }
+  },
+  "mongo_settings": {
+    "pastes_db_1": {
+      "uri": "mongodb://localhost:27217/pastes_db_1"
+    }
+  }
+}

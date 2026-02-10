@@ -28,6 +28,11 @@ components_manager:
                     network_timeout_ms: 750
                     statement_timeout_ms: 500
 
+        secdist:
+            load-enabled: true
+        default-secdist-provider:
+            config: $secdist-path
+
         testsuite-support: {}
 
         congestion-control:
@@ -50,21 +55,20 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
-        handler-upload-paste:
-            path: /api/v1/paste/{id}
-            method: POST
-            task_processor: main-task-processor
+        # handler-upload-paste:
+        #     path: /api/v1/paste/{id}
+        #     method: POST
+        #     task_processor: main-task-processor
 
-        handler-delete-paste:
-            path: /api/v1/delete/{id}
-            method: DELETE
-            task_processor: main-task-processor
+        # handler-delete-paste:
+        #     path: /api/v1/delete/{id}
+        #     method: DELETE
+        #     task_processor: main-task-processor
 
         # metadata_repo expects
         # postgres-component:
         postgres-db-1:
-            dbconnection: $pg-connection
-            dbconnection#env: DB_CONNECTION
+            dbalias: pg_pastes_db_1
             blocking_task_processor: fs-task-processor
             dns_resolver: async
             sync-start: true
@@ -73,4 +77,4 @@ components_manager:
         # blob_repo expects
         # mongo-component:
         mongo-db-1:
-            dbconnection: $mongo-connection
+            dbalias: pastes_db_1

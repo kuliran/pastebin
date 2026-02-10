@@ -23,5 +23,5 @@ private:
 
     userver::storages::mongo::PoolPtr mongo_pool_;
 };
-    
+
 }

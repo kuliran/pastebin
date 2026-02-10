@@ -1,0 +1,11 @@
+DROP SCHEMA IF EXISTS pastes CASCADE;
+
+CREATE SCHEMA IF NOT EXISTS pastes;
+
+CREATE TABLE IF NOT EXISTS pastes.metadata (
+    id VARCHAR(64) PRIMARY KEY,
+    created_at TIMESTAMPTZ NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    delete_key TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL
+);

@@ -28,7 +28,7 @@ utils::expected<PasteMetadata, GetPasteMetadataError>
             return {GetPasteMetadataError::kNotFound};
         }
 
-        auto metadata = result.AsSingleRow<PasteMetadata>();
+        auto metadata = result.AsSingleRow<PasteMetadata>(storages::postgres::kRowTag);
         if (std::chrono::system_clock::now() >= metadata.expires_at) {
             return {GetPasteMetadataError::kSoftExpired};
         }

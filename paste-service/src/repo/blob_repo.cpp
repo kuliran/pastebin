@@ -20,7 +20,7 @@ utils::expected<PasteBlob, GetPasteBlobError> BlobRepo::GetPasteBlob(const std::
     using formats::bson::MakeDoc;
 
     try {
-        const auto blob_collection = mongo_pool_->GetCollection("paste_data");
+        const auto blob_collection = mongo_pool_->GetCollection("pastes");
         const auto mongo_result = blob_collection.FindOne(MakeDoc("_id", id));
         if (!mongo_result)
             return {GetPasteBlobError::kNotFound};

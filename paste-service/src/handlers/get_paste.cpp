@@ -46,8 +46,12 @@ formats::json::Value GetPaste::
     const auto blob = blob_repo_.GetPasteBlob(id);
     if (!blob) {
         switch (blob.error()) {
-            default: {
+            case paste_service::GetPasteBlobError::kNotFound: {
                 LOG_ERROR() << "Paste metadata exists, but no blob: " << id;
+                request.SetResponseStatus(HttpStatus::kNotFound);
+                return {};
+            }
+            default: {
                 request.SetResponseStatus(HttpStatus::InternalServerError);
                 return {};
             }

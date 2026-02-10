@@ -37,8 +37,8 @@ inline userver::formats::json::Value Serialize(
     userver::formats::json::ValueBuilder b;
     b["created_at"] = p.created_at;
     b["expires_at"] = p.expires_at;
-    b["text"] = p.text;
     b["size_bytes"] = p.size_bytes;
+    b["text"] = p.text;
     return b.ExtractValue();
 }
 

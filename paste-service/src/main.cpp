@@ -8,6 +8,7 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/storages/mongo/component.hpp>    
 #include <userver/storages/postgres/component.hpp> 
 
@@ -25,6 +26,8 @@ int main(int argc, char* argv[]) {
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
             .Append<paste_service::GetPaste>()
+            .Append<userver::components::Secdist>()
+            .Append<userver::components::DefaultSecdistProvider>()
             .Append<userver::components::Postgres>("postgres-db-1")
             .Append<userver::components::Mongo>("mongo-db-1")
         ;
