@@ -8,17 +8,18 @@
 
 namespace paste_service {
 
-class GetPaste final : public userver::server::handlers::HttpHandlerJsonBase {
+class UploadPaste final : public userver::server::handlers::HttpHandlerJsonBase {
 public:
-    static constexpr std::string_view kName = "handler-get-paste";
+    static constexpr std::string_view kName = "handler-upload-paste";
 
-    GetPaste(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
+    UploadPaste(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::formats::json::Value HandleRequestJsonThrow(const HttpRequest&, const Value&, RequestContext&)
         const override;
 
 private:
-    static constexpr std::string_view kPathArgId = "id";
+    static constexpr int kIdCollisionRetries = 2;
+    static constexpr int kMaxBlobSizeBytes = 1024*1024;
 
     MetadataRepo metadata_repo_;
     BlobRepo blob_repo_;

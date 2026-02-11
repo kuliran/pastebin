@@ -13,7 +13,7 @@ enum class GetPasteMetadataError {
     kDbError
 };
 
-enum class PostPasteMetadataError {
+enum class UploadPasteMetadataError {
     kIdCollision,
     kDbError,
 };
@@ -25,8 +25,8 @@ public:
     userver::utils::expected<PasteMetadata, GetPasteMetadataError>
         GetPasteMetadata(const std::string_view& id) const;
 
-    std::optional<PostPasteMetadataError>
-        PostPasteMetadata(const PasteMetadata&) const;
+    std::optional<UploadPasteMetadataError>
+        UploadPasteMetadata(const PasteMetadata& metadata) const;
 private:
     static constexpr std::string_view kDefaultPgComponent = "postgres-db-1";
 

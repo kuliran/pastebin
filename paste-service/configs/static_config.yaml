@@ -55,10 +55,11 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
-        # handler-upload-paste:
-        #     path: /api/v1/paste/{id}
-        #     method: POST
-        #     task_processor: main-task-processor
+        handler-upload-paste:
+            path: /api/v1/paste/
+            method: POST
+            task_processor: main-task-processor
+            max_request_size: 1049200 # ~1.0006MB
 
         # handler-delete-paste:
         #     path: /api/v1/delete/{id}

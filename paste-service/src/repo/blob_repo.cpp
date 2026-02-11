@@ -37,10 +37,28 @@ utils::expected<PasteBlob, GetPasteBlobError> BlobRepo::GetPasteBlob(const std::
     }
 }
 
-std::optional<PostPasteBlobError> BlobRepo::PostPasteBlob(const PasteBlob&) const {
+std::optional<UploadPasteBlobError> BlobRepo::UploadPasteBlob(const PasteBlob& blob) const {
     using formats::bson::MakeDoc;
 
-    // TODO
+    try {
+        auto blob_collection = mongo_pool_->GetCollection("pastes");
+        auto blob_doc = formats::bson::ValueBuilder(blob).ExtractValue();
+
+        auto result = blob_collection.UpdateOne(
+            MakeDoc("_id", blob.id),
+            MakeDoc("$setOnInsert", blob_doc),
+            storages::mongo::options::Upsert{}
+        );
+
+        if (result.UpsertedCount() == 0)
+            return {UploadPasteBlobError::kIdCollision};
+    } catch (const storages::mongo::MongoException& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {UploadPasteBlobError::kDbError};
+    } catch (const std::exception& e) {
+        LOG_ERROR() << "Failed to serialize PasteBlob: " << e.what();
+        return {UploadPasteBlobError::kInvalidData};
+    }
     return std::nullopt;
 }
 

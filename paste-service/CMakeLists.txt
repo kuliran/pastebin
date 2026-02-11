@@ -24,8 +24,10 @@ include_directories(src)
 add_library(
     ${PROJECT_NAME}_objs OBJECT
     src/handlers/get_paste.cpp
+    src/handlers/upload_paste.cpp
     src/repo/blob_repo.cpp
     src/repo/metadata_repo.cpp
+    src/utils/id_gen.cpp
 )
 target_link_libraries(
     ${PROJECT_NAME}_objs

@@ -40,7 +40,33 @@ utils::expected<PasteMetadata, GetPasteMetadataError>
     }
 }
 
-std::optional<PostPasteMetadataError> MetadataRepo::PostPasteMetadata(const PasteMetadata& metadata) const {
+std::optional<UploadPasteMetadataError> MetadataRepo::UploadPasteMetadata(const PasteMetadata& metadata) const {
+    try {
+        const auto result = pg_cluster_->Execute(
+            storages::postgres::ClusterHostType::kMaster,
+            "INSERT INTO pastes.metadata "
+            "(id, created_at, expires_at, size_bytes, delete_key) "
+            "VALUES ($1, $2, $3, $4, $5) "
+            "ON CONFLICT (id) DO NOTHING",
+            metadata.id,
+            metadata.created_at,
+            metadata.expires_at,
+            metadata.size_bytes,
+            metadata.delete_key
+        );
+
+        if (result.RowsAffected() == 0) {
+            return {UploadPasteMetadataError::kIdCollision};
+        }
+    } catch(const storages::postgres::UniqueViolation& e) {
+        // In case of race condition
+        LOG_WARNING() << "DB unique violation: " << e.what();
+        return {UploadPasteMetadataError::kIdCollision};
+    } catch(const storages::postgres::Error& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {UploadPasteMetadataError::kDbError};
+    }
+
     return std::nullopt;
 }
 

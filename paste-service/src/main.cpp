@@ -15,6 +15,7 @@
 #include <userver/utils/daemon_run.hpp>
 
 #include "handlers/get_paste.hpp"
+#include "handlers/upload_paste.hpp"
 
 int main(int argc, char* argv[]) {
     auto component_list =
@@ -26,6 +27,7 @@ int main(int argc, char* argv[]) {
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
             .Append<paste_service::GetPaste>()
+            .Append<paste_service::UploadPaste>()
             .Append<userver::components::Secdist>()
             .Append<userver::components::DefaultSecdistProvider>()
             .Append<userver::components::Postgres>("postgres-db-1")
