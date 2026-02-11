@@ -1,14 +1,14 @@
 #pragma once
 
 #include <string>
-#include <chrono>
+#include <userver/storages/postgres/io/chrono.hpp>
 
 namespace paste_service {
 
 struct PasteMetadata {
     std::string id;
-    std::chrono::system_clock::time_point created_at;
-    std::chrono::system_clock::time_point expires_at;
+    userver::storages::postgres::TimePointTz created_at;
+    userver::storages::postgres::TimePointTz expires_at;
     std::string delete_key;
     int size_bytes;
 };
