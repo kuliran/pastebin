@@ -14,7 +14,7 @@ class UploadResult:
     pg_size_bytes: int
 
 @pytest.fixture
-async def api_upload_fixture(service_client, pg_cursor, mongo_collection) -> UploadResult:
+async def api_upload_paste(service_client, pg_cursor, mongo_collection) -> UploadResult:
     async def _upload(paste_text: str) -> UploadResult:
         # Preparation
         utf_text = paste_text.encode('utf-8')
