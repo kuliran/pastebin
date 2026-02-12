@@ -10,6 +10,7 @@ pytest_plugins = [
     'fixtures.api_get_paste',
     'fixtures.raw_insert_paste',
     'fixtures.api_upload_paste',
+    'fixtures.api_delete_paste',
 ]
 
 
