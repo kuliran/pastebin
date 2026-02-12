@@ -1,4 +1,4 @@
-#include "repo/blob_repo.hpp"
+#include "components/blob_repo.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/storages/mongo/component.hpp>
@@ -11,9 +11,8 @@ using namespace userver;
 namespace paste_service {
 
 BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::ComponentContext& component_context)
-    : mongo_pool_(component_context.FindComponent<components::Mongo>(
-        config["mongo-component"].As<std::string>(kDefaultMongoComponent)
-    ).GetPool())
+    : components::LoggableComponentBase(config, component_context)
+    , mongo_pool_(component_context.FindComponent<components::Mongo>(kDefaultMongoComponent).GetPool())
 {}
 
 utils::expected<PasteBlob, GetPasteBlobError> BlobRepo::GetPasteBlob(const std::string_view& id) const {

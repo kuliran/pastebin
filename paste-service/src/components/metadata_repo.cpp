@@ -1,4 +1,4 @@
-#include "repo/metadata_repo.hpp"
+#include "components/metadata_repo.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/storages/postgres/component.hpp>
@@ -8,9 +8,8 @@ using namespace userver;
 namespace paste_service {
 
 MetadataRepo::MetadataRepo(const components::ComponentConfig& config, const components::ComponentContext& component_context)
-    : pg_cluster_(component_context.FindComponent<components::Postgres>(
-        config["postgres-component"].As<std::string>(kDefaultPgComponent)
-    ).GetCluster())
+    : components::LoggableComponentBase(config, component_context)
+    , pg_cluster_(component_context.FindComponent<components::Postgres>(kDefaultPgComponent).GetCluster())
 {}
 
 utils::expected<PasteMetadata, GetPasteMetadataError>

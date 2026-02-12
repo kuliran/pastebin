@@ -1,7 +1,7 @@
 #pragma once
 
-#include "repo/metadata_repo.hpp"
-#include "repo/blob_repo.hpp"
+#include "components/metadata_repo.hpp"
+#include "components/blob_repo.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
@@ -21,8 +21,8 @@ public:
 private:
     static constexpr std::string_view kPathArgId = "id";
 
-    MetadataRepo metadata_repo_;
-    BlobRepo blob_repo_;
+    MetadataRepo& metadata_repo_;
+    BlobRepo& blob_repo_;
     mutable userver::concurrent::BackgroundTaskStorage background_tasks_;
 };
 

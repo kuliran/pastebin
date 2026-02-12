@@ -33,6 +33,9 @@ components_manager:
         default-secdist-provider:
             config: $secdist-path
 
+        blob-repo:
+        metadata-repo:
+
         testsuite-support: {}
 
         congestion-control:

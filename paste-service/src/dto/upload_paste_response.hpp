@@ -1,6 +1,6 @@
 #pragma once
 
-#include "repo/paste_metadata.hpp"
+#include "models/paste_metadata.hpp"
 
 #include <userver/formats/json.hpp>
 

@@ -11,8 +11,8 @@ DeletePaste::DeletePaste(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , metadata_repo_(config, component_context)
-    , blob_repo_(config, component_context)
+    , metadata_repo_(component_context.FindComponent<MetadataRepo>(MetadataRepo::kName))
+    , blob_repo_(component_context.FindComponent<BlobRepo>(BlobRepo::kName))
 {}
 
 formats::json::Value DeletePaste::
@@ -57,7 +57,7 @@ formats::json::Value DeletePaste::
         // Background orphan blob cleanup
         background_tasks_.AsyncDetach(
             "blob-cleanup",
-            [blob_repo = blob_repo_, // passing repo by value - it's a lightweight wrapper
+            [&blob_repo = blob_repo_, // passing repo by ref - it's a component with lifetime of the whole process
                 id = std::move(id)]() {
                 try {
                     blob_repo.DeletePasteBlob(id);

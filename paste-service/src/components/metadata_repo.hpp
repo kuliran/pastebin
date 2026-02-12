@@ -1,7 +1,8 @@
 #pragma once
 
-#include "repo/paste_metadata.hpp"
+#include "models/paste_metadata.hpp"
 
+#include <userver/components/component_base.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/utils/expected.hpp>
 
@@ -23,8 +24,10 @@ enum class DeletePasteMetadataError {
     kDbError,
 };
 
-class MetadataRepo {
+class MetadataRepo : public userver::components::LoggableComponentBase {
 public:
+    static constexpr std::string_view kName = "metadata-repo";
+
     MetadataRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::utils::expected<PasteMetadata, GetPasteMetadataError>
