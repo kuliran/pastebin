@@ -61,10 +61,11 @@ components_manager:
             task_processor: main-task-processor
             max_request_size: 1049200 # ~1.0006MB
 
-        # handler-delete-paste:
-        #     path: /api/v1/delete/{id}
-        #     method: DELETE
-        #     task_processor: main-task-processor
+        handler-delete-paste:
+            path: /api/v1/delete/{id}
+            method: DELETE
+            task_processor: main-task-processor
+            max_request_size: 1024 # 1KB
 
         # metadata_repo expects
         # postgres-component:

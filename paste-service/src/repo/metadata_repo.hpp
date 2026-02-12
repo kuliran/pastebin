@@ -18,6 +18,11 @@ enum class UploadPasteMetadataError {
     kDbError,
 };
 
+enum class DeletePasteMetadataError {
+    kNotExists,
+    kDbError,
+};
+
 class MetadataRepo {
 public:
     MetadataRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
@@ -27,6 +32,9 @@ public:
 
     std::optional<UploadPasteMetadataError>
         UploadPasteMetadata(const PasteMetadata& metadata) const;
+
+    std::optional<DeletePasteMetadataError>
+        DeletePasteMetadata(const std::string_view& id, const std::string_view& delete_key) const;
 private:
     static constexpr std::string_view kDefaultPgComponent = "postgres-db-1";
 

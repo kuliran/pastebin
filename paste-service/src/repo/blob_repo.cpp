@@ -62,4 +62,22 @@ std::optional<UploadPasteBlobError> BlobRepo::UploadPasteBlob(const PasteBlob& b
     return std::nullopt;
 }
 
+std::optional<DeletePasteBlobError> BlobRepo::DeletePasteBlob(const std::string_view& id) const {
+    using formats::bson::MakeDoc;
+
+    try {
+        auto blob_collection = mongo_pool_->GetCollection("pastes");
+        auto result = blob_collection.DeleteOne(
+            MakeDoc("_id", id)
+        );
+
+        if (result.DeletedCount() == 0)
+            return {DeletePasteBlobError::kNotExists};
+    } catch (const storages::mongo::MongoException& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {DeletePasteBlobError::kDbError};
+    }
+    return std::nullopt;
+}
+
 }

@@ -70,4 +70,24 @@ std::optional<UploadPasteMetadataError> MetadataRepo::UploadPasteMetadata(const 
     return std::nullopt;
 }
 
+std::optional<DeletePasteMetadataError>
+    MetadataRepo::DeletePasteMetadata(const std::string_view& id, const std::string_view& delete_key) const {
+    try {
+        const auto result = pg_cluster_->Execute(
+            storages::postgres::ClusterHostType::kMaster,
+            "DELETE FROM pastes.metadata "
+            "WHERE id = $1 AND delete_key = $2 ",
+            id, delete_key
+        );
+
+        if (result.RowsAffected() == 0)
+            return {DeletePasteMetadataError::kNotExists};
+    } catch(const storages::postgres::Error& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {DeletePasteMetadataError::kDbError};
+    }
+
+    return std::nullopt;
+}
+
 }

@@ -16,6 +16,7 @@
 
 #include "handlers/get_paste.hpp"
 #include "handlers/upload_paste.hpp"
+#include "handlers/delete_paste.hpp"
 
 int main(int argc, char* argv[]) {
     auto component_list =
@@ -28,6 +29,7 @@ int main(int argc, char* argv[]) {
             .Append<userver::congestion_control::Component>()
             .Append<paste_service::GetPaste>()
             .Append<paste_service::UploadPaste>()
+            .Append<paste_service::DeletePaste>()
             .Append<userver::components::Secdist>()
             .Append<userver::components::DefaultSecdistProvider>()
             .Append<userver::components::Postgres>("postgres-db-1")
