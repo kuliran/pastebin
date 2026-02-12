@@ -1,5 +1,5 @@
 #include "handlers/get_paste.hpp"
-#include "dto/get_paste_response.hpp"
+#include "services/dto/paste_dto_json.hpp" // IWYU pragma: keep; ADL json Serialize provider
 
 using namespace userver;
 
@@ -10,29 +10,25 @@ GetPaste::GetPaste(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , metadata_repo_(config, component_context)
-    , blob_repo_(config, component_context)
+    , paste_service_(component_context.FindComponent<PasteService>(PasteService::kName))
 {}
 
 formats::json::Value GetPaste::
     HandleRequestJsonThrow(const HttpRequest& request, const Value&, RequestContext&)
         const {
     using userver::server::http::HttpStatus;
+    using namespace paste_service::dto;
 
-    const auto& id = request.GetPathArg(kPathArgId);
-    if (id.empty() || id.size() > 128) {
-        request.SetResponseStatus(HttpStatus::BadRequest);
-        return {};
-    }
+    const auto& id = request.GetPathArg("id");
 
-    auto span = tracing::Span::CurrentSpan().CreateChild("get_paste");
+    auto span = tracing::Span::CurrentSpan().CreateChild("get_paste_http");
     span.AddTag("paste_id", std::string(id));
 
-    const auto metadata = metadata_repo_.GetPasteMetadata(id);
-    if (!metadata) {
-        switch (metadata.error()) {
-            case GetPasteMetadataError::kNotFound:
-            case GetPasteMetadataError::kSoftExpired: {
+    auto result = paste_service_.GetPaste(id);
+    if (!result) {
+        switch (result.error()) {
+            case GetPasteError::kSoftExpired:
+            case GetPasteError::kNotExists: {
                 request.SetResponseStatus(HttpStatus::NotFound);
                 return {};
             }
@@ -43,23 +39,7 @@ formats::json::Value GetPaste::
         }
     }
 
-    const auto blob = blob_repo_.GetPasteBlob(id);
-    if (!blob) {
-        switch (blob.error()) {
-            case paste_service::GetPasteBlobError::kNotFound: {
-                LOG_ERROR() << "Paste metadata exists, but no blob: " << id;
-                request.SetResponseStatus(HttpStatus::kNotFound);
-                return {};
-            }
-            default: {
-                request.SetResponseStatus(HttpStatus::InternalServerError);
-                return {};
-            }
-        }
-    }
-
-    auto res = dto::MakeGetPasteResponse(metadata.value(), blob.value());
-    return formats::json::ValueBuilder(res).ExtractValue();
+    return formats::json::ValueBuilder(std::move(result.value())).ExtractValue();
 }
 
 }  // namespace paste_service

@@ -1,11 +1,9 @@
 #pragma once
 
-#include "components/metadata_repo.hpp"
-#include "components/blob_repo.hpp"
+#include "services/paste_service.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
-#include <userver/concurrent/background_task_storage.hpp>
 
 namespace paste_service {
 
@@ -19,11 +17,7 @@ public:
         const override;
 
 private:
-    static constexpr std::string_view kPathArgId = "id";
-
-    MetadataRepo& metadata_repo_;
-    BlobRepo& blob_repo_;
-    mutable userver::concurrent::BackgroundTaskStorage background_tasks_;
+    PasteService& paste_service_;
 };
 
 }  // namespace paste_service

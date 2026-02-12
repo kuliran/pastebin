@@ -1,9 +1,5 @@
 #include "handlers/upload_paste.hpp"
-#include "utils/id_gen.hpp"
-#include "dto/upload_paste_response.hpp"
-
-#include <userver/utils/uuid4.hpp>
-#include <userver/formats/json.hpp>
+#include "services/dto/paste_dto_json.hpp" // IWYU pragma: keep; ADL json Serialize provider
 
 using namespace userver;
 
@@ -14,8 +10,7 @@ UploadPaste::UploadPaste(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , metadata_repo_(config, component_context)
-    , blob_repo_(config, component_context)
+    , paste_service_(component_context.FindComponent<PasteService>(PasteService::kName))
 {}
 
 formats::json::Value UploadPaste::
@@ -27,64 +22,31 @@ formats::json::Value UploadPaste::
         request.SetResponseStatus(HttpStatus::kBadRequest);
         return {};
     }
-
     std::string text = request_json["text"].As<std::string>();
-    if (text.empty()) {
-        request.SetResponseStatus(HttpStatus::kBadRequest);
-        return {};
-    }
-    // size limit is also set in static_config.yaml to be slightly more than here
-    // to permit json payload (which adds a bit of overhead)
-    if (text.size() > kMaxBlobSizeBytes) {
-        request.SetResponseStatus(HttpStatus::kPayloadTooLarge);
-        return {};
-    }
 
-    std::string delete_key = utils::generators::GenerateUuid();
-    auto now = std::chrono::system_clock::now();
-    auto expires_at = now + std::chrono::hours(24*7);
+    auto span = tracing::Span::CurrentSpan().CreateChild("upload_paste_http");
 
-    PasteBlob blob{{}, std::move(text)};
-    PasteMetadata metadata{
-        .id = {}, // is set below
-        .created_at = storages::postgres::TimePointTz(now),
-        .expires_at = storages::postgres::TimePointTz(expires_at),
-        .delete_key = std::move(delete_key),
-        .size_bytes = static_cast<int>(blob.text.size()),
-    };
-
-    for (int i = 0; i <= kIdCollisionRetries; ++i) {
-        blob.id = id_gen::GenId();
-
-        auto span = tracing::Span::CurrentSpan().CreateChild("upload_paste");
-        span.AddTag("paste_id", blob.id);
-
-        auto blob_err = blob_repo_.UploadPasteBlob(blob);
-        if (blob_err) {
-            if (*blob_err == UploadPasteBlobError::kIdCollision)
-                continue;
-            
-            request.SetResponseStatus(HttpStatus::kInternalServerError);
-            return {};
+    auto result = paste_service_.UploadPaste(std::move(text));
+    if (!result) {
+        switch (result.error()) {
+            case dto::UploadPasteError::kEmptyText: {
+                request.SetResponseStatus(HttpStatus::kBadRequest);
+                return {};
+            }
+            case dto::UploadPasteError::kTextTooLarge: {
+                // size limit is also set in static_config.yaml to be slightly more than here
+                // to permit json payload (which adds a bit of overhead)
+                request.SetResponseStatus(HttpStatus::kPayloadTooLarge);
+                return {};
+            }
+            default: {
+                request.SetResponseStatus(HttpStatus::kInternalServerError);
+                return {};
+            }
         }
-
-        metadata.id = std::move(blob.id);
-        auto metadata_err = metadata_repo_.UploadPasteMetadata(metadata);
-        if (metadata_err) {
-            if (*metadata_err == UploadPasteMetadataError::kIdCollision)
-                continue;
-            
-            request.SetResponseStatus(HttpStatus::kInternalServerError);
-            return {};
-        }
-
-        auto res = dto::MakeUploadPasteResponse(metadata);
-        return formats::json::ValueBuilder(res).ExtractValue();
     }
-    
-    LOG_WARNING() << "Upload id gen exceeded the number of retries";
-    request.SetResponseStatus(HttpStatus::kInternalServerError);
-    return {};
+
+    return formats::json::ValueBuilder(std::move(result.value())).ExtractValue();
 }
 
 }  // namespace paste_service

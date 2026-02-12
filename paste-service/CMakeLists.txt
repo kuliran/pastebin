@@ -23,8 +23,9 @@ include_directories(src)
 
 add_library(
     ${PROJECT_NAME}_objs OBJECT
-    src/components/blob_repo.cpp
+    src/services/paste_service.cpp
     src/components/metadata_repo.cpp
+    src/components/blob_repo.cpp
     src/handlers/get_paste.cpp
     src/handlers/upload_paste.cpp
     src/handlers/delete_paste.cpp

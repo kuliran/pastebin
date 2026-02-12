@@ -14,6 +14,7 @@
 
 #include <userver/utils/daemon_run.hpp>
 
+#include "services/paste_service.hpp"
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
 #include "handlers/get_paste.hpp"
@@ -29,15 +30,17 @@ int main(int argc, char* argv[]) {
             .Append<userver::clients::dns::Component>()
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
+            .Append<userver::components::Secdist>()
+            .Append<userver::components::DefaultSecdistProvider>()
+            .Append<userver::components::Postgres>("postgres-db-1")
+            .Append<userver::components::Mongo>("mongo-db-1")
+
+            .Append<paste_service::PasteService>()
             .Append<paste_service::MetadataRepo>()
             .Append<paste_service::BlobRepo>()
             .Append<paste_service::GetPaste>()
             .Append<paste_service::UploadPaste>()
             .Append<paste_service::DeletePaste>()
-            .Append<userver::components::Secdist>()
-            .Append<userver::components::DefaultSecdistProvider>()
-            .Append<userver::components::Postgres>("postgres-db-1")
-            .Append<userver::components::Mongo>("mongo-db-1")
         ;
 
     return userver::utils::DaemonMain(argc, argv, component_list);

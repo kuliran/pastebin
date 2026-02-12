@@ -1,7 +1,6 @@
 #pragma once
 
-#include "components/metadata_repo.hpp"
-#include "components/blob_repo.hpp"
+#include "services/paste_service.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
@@ -18,11 +17,7 @@ public:
         const override;
 
 private:
-    static constexpr int kIdCollisionRetries = 2;
-    static constexpr int kMaxBlobSizeBytes = 1024*1024;
-
-    MetadataRepo metadata_repo_;
-    BlobRepo blob_repo_;
+    PasteService& paste_service_;
 };
 
 }  // namespace paste_service

@@ -11,61 +11,41 @@ DeletePaste::DeletePaste(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , metadata_repo_(component_context.FindComponent<MetadataRepo>(MetadataRepo::kName))
-    , blob_repo_(component_context.FindComponent<BlobRepo>(BlobRepo::kName))
+    , paste_service_(component_context.FindComponent<PasteService>(PasteService::kName))
 {}
 
 formats::json::Value DeletePaste::
     HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext&)
         const {
     using userver::server::http::HttpStatus;
-
-    const auto& id = request.GetPathArg(kPathArgId);
-    if (id.empty() || id.size() > 128) {
-        request.SetResponseStatus(HttpStatus::kBadRequest);
-        return {};
-    }
+    using namespace paste_service::dto;
 
     if (!request_json.IsObject() || !request_json.HasMember("delete_key")
         || !request_json["delete_key"].IsString()) {
         request.SetResponseStatus(HttpStatus::kBadRequest);
         return {};
     }
-
+    const auto& id = request.GetPathArg("id");
     std::string delete_key = request_json["delete_key"].As<std::string>();
-    if (delete_key.empty()) {
-        request.SetResponseStatus(HttpStatus::kBadRequest);
-        return {};
-    }
+    
+    auto span = tracing::Span::CurrentSpan().CreateChild("delete_paste_http");
+    span.AddTag("paste_id", std::string(id));
 
-    bool existed = true;
-    auto metadata_err = metadata_repo_.DeletePasteMetadata(id, delete_key);
-    if (metadata_err) {
-        existed = false;
-
-        switch (*metadata_err) {
-            case DeletePasteMetadataError::kNotExists:
+    auto result = paste_service_.DeletePaste(id, delete_key);
+    if (!result) {
+        switch (result.error()) {
+            case DeletePasteError::kInvalidId:
+            case DeletePasteError::kInvalidDeleteKey: {
+                request.SetResponseStatus(HttpStatus::kBadRequest);
+                return {};
+            }
+            case DeletePasteError::kNotExists:
                 break;
             default: {
                 request.SetResponseStatus(HttpStatus::kInternalServerError);
                 return {};
             }
         }
-    }
-
-    if (existed) {
-        // Background orphan blob cleanup
-        background_tasks_.AsyncDetach(
-            "blob-cleanup",
-            [&blob_repo = blob_repo_, // passing repo by ref - it's a component with lifetime of the whole process
-                id = std::move(id)]() {
-                try {
-                    blob_repo.DeletePasteBlob(id);
-                } catch (const engine::TaskCancelledException&) {
-                    LOG_WARNING() << "Blob cleanup cancelled during shutdown; paste_id: " << id;
-                }
-            }
-        );
     }
 
     // always tell the client the paste has been deleted for security

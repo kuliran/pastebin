@@ -2,7 +2,7 @@
 
 #include <userver/formats/bson.hpp>
 
-namespace paste_service{
+namespace paste_service {
 
 struct PasteBlob {
     std::string id;
