@@ -1,7 +1,6 @@
 # Start the tests via `make test-debug` or `make test-release`
 
 import pytest
-from testsuite.databases import mongo
 from dateutil.parser import isoparse
 from fixtures.api_upload_paste import UploadResult
 

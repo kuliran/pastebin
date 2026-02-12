@@ -1,5 +1,4 @@
 import pytest
-from testsuite.databases import mongo
 from fixtures.raw_insert_paste import RawInsertResult
 
 # =========================================

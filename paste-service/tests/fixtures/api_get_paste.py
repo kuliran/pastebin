@@ -30,3 +30,12 @@ async def api_get_paste(service_client) -> GetPasteResult:
             expires_at_utc=isoparse(json['expires_at']),
         )
     return _get
+
+@pytest.fixture
+async def api_get_paste_expect_404(service_client):
+    async def _get(paste_id: str):
+        response = await service_client.get(f'/api/v1/{paste_id}')
+        assert response.status == 404
+        assert 'application/json' in response.headers['Content-Type']
+        assert response.text == 'null'
+    return _get
