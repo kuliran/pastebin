@@ -27,7 +27,7 @@ async def test_upload_and_delete(api_upload_paste, api_delete_paste):
 async def test_upload_get_delete_get(api_upload_paste, api_get_paste, api_delete_paste, api_get_paste_expect_404):
     paste_text = 'Hello, world!'
     upload_result = await api_upload_paste(paste_text)
-    get_result = await api_get_paste(upload_result.paste_id)
+    await api_get_paste(upload_result.paste_id)
     await api_delete_paste(upload_result.paste_id, upload_result.delete_key)
     await api_get_paste_expect_404(upload_result.paste_id)
 
@@ -39,6 +39,7 @@ async def test_delete_non_existent(api_delete_paste):
     await api_delete_paste(paste_id, delete_key)
 
 async def test_upload_2_and_delete_1(api_upload_paste, api_delete_paste, api_get_paste, api_get_paste_expect_404):
+    ## Test that deleting 1 doesn't delete all
     paste_text = 'Hello, world!'
     paste_text2 = 'Good]]\tmorning'
 
