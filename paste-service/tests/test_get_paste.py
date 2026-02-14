@@ -25,6 +25,14 @@ async def test_non_existent(api_get_paste_expect_404, mongo_collection):
     await api_get_paste_expect_404(paste_id)
     assert mongo_collection.count_documents({}) == 0
 
+async def test_expired(api_get_paste_expect_404, raw_insert_paste, mongo_collection):
+    paste_id = 'abc123'
+    paste_text = 'abc'
+
+    await raw_insert_paste(paste_id, paste_text, 'xyz', '-1 second')
+    assert mongo_collection.count_documents({}) == 1
+    await api_get_paste_expect_404(paste_id)
+
 # =========================================
 # ============= LOCAL FIXTURES ============
 # =========================================

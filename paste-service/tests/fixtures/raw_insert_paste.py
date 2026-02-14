@@ -10,16 +10,16 @@ class RawInsertResult:
 
 @pytest.fixture
 async def raw_insert_paste(pg_cursor, mongo_collection):
-    async def _insert(paste_id: str, paste_text: str, delete_key: str) -> RawInsertResult:
+    async def _insert(paste_id: str, paste_text: str, delete_key: str, expires_at_interval: str = '1 day') -> RawInsertResult:
         text_utf = paste_text.encode('utf-8')
         utf_len = len(text_utf)
 
         # Insert into Postgres
         pg_cursor.execute("""
             INSERT INTO pastes.metadata(id, created_at, expires_at, size_bytes, delete_key)
-            VALUES (%s, NOW(), NOW() + INTERVAL '1 day', %s, %s)
+            VALUES (%s, NOW(), NOW() + INTERVAL %s, %s, %s)
             RETURNING created_at, expires_at
-        """, (paste_id, utf_len, delete_key))
+        """, (paste_id, expires_at_interval, utf_len, delete_key))
         pg_created_at, pg_expires_at = pg_cursor.fetchone()
 
         # Insert into Mongo
