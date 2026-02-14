@@ -5,12 +5,14 @@
 #pragma once
 
 #include <string>
+#include <array>
 
 namespace paste_service {
 
 namespace id_gen {
 
 std::string GenId();
+std::string EncodeBase58(std::array<uint8_t, 8> input);
 
 }
 

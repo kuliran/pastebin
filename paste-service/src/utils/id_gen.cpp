@@ -1,7 +1,6 @@
 #include "utils/id_gen.hpp"
 
 #include <cstring>
-#include <array>
 #include <random>
 
 // Bitcoin-style base58 alphabet without l, I, O, 0
@@ -15,7 +14,15 @@ static std::array<uint8_t, 8> Generate64BitRandom() {
     return bytes;
 }
 
-static std::string EncodeBase58(std::array<uint8_t, 8> input) {
+namespace paste_service {
+namespace id_gen {
+
+std::string GenId() {
+    auto bytes = Generate64BitRandom();
+    return EncodeBase58(bytes);
+}
+
+std::string EncodeBase58(std::array<uint8_t, 8> input) {
     std::vector<uint8_t> bytes(input.begin(), input.end());
     std::string result;
 
@@ -38,14 +45,6 @@ static std::string EncodeBase58(std::array<uint8_t, 8> input) {
 
     std::reverse(result.begin(), result.end());
     return result;
-}
-
-namespace paste_service {
-namespace id_gen {
-
-std::string GenId() {
-    auto bytes = Generate64BitRandom();
-    return EncodeBase58(bytes);
 }
 
 }
