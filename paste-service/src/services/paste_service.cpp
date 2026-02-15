@@ -44,17 +44,21 @@ utils::expected<GetPasteResult, GetPasteError> PasteService::GetPaste(const std:
     return GetPasteResult(std::move(metadata.value()), std::move(blob.value()));
 }
 
-utils::expected<UploadPasteResult, UploadPasteError> PasteService::UploadPaste(std::string text) const {
+utils::expected<UploadPasteResult, UploadPasteError> PasteService::UploadPaste(std::string text, UploadPasteLifetime lifetime) const {
     if (text.empty())
         return {UploadPasteError::kEmptyText};
     if (text.size() > kMaxBlobSizeBytes)
         return {UploadPasteError::kTextTooLarge};
-    
+
+    auto expires_in = ToDuration(lifetime);
+    if (!expires_in)
+        return {UploadPasteError::kInvalidLifetimeParam};
+
     std::string delete_key = utils::generators::GenerateUuid();
     auto now = std::chrono::system_clock::now();
-    auto expires_at = now + std::chrono::hours(24*7);
+    auto expires_at = now + *expires_in;
 
-    PasteBlob blob{{}, std::move(text)};
+    PasteBlob blob{{}, std::move(text), expires_at};
     PasteMetadata metadata{
         .id = {}, // is set below
         .created_at = storages::postgres::TimePointTz(now),

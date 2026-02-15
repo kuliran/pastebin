@@ -3,6 +3,7 @@
 #include <userver/components/component.hpp>
 #include <userver/storages/mongo/component.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/operations.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 
@@ -44,7 +45,10 @@ std::optional<UploadPasteBlobError> BlobRepo::UploadPasteBlob(const PasteBlob& b
         auto blob_doc = formats::bson::ValueBuilder(blob).ExtractValue();
 
         auto result = blob_collection.UpdateOne(
-            MakeDoc("_id", blob.id),
+            MakeDoc(
+                "_id", blob.id,
+                "expire_at", blob.expires_at
+            ),
             MakeDoc("$setOnInsert", blob_doc),
             storages::mongo::options::Upsert{}
         );

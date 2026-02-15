@@ -17,7 +17,10 @@ public:
     PasteService(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::utils::expected<dto::GetPasteResult, dto::GetPasteError> GetPaste(const std::string_view& id) const;
-    userver::utils::expected<dto::UploadPasteResult, dto::UploadPasteError> UploadPaste(std::string text) const; // copying text because it will be a part of the result
+    userver::utils::expected<dto::UploadPasteResult, dto::UploadPasteError> UploadPaste(
+            std::string text, // copying text because it will be a part of the result
+            dto::UploadPasteLifetime lifetime
+        ) const;
     userver::utils::expected<dto::DeletePasteResult, dto::DeletePasteError> DeletePaste(const std::string_view& id, const std::string_view& delete_key) const;
 private:
     static constexpr int kIdCollisionRetries = 2;
