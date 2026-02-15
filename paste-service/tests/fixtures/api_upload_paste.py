@@ -2,8 +2,6 @@ import pytest
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-DEFAULT_PASTE_LIFETIME_SECONDS = 60*60*24*7 # 1 week
-
 @dataclass
 class UploadResult:
     paste_id: str
@@ -15,14 +13,17 @@ class UploadResult:
 
 @pytest.fixture
 async def api_upload_paste(service_client, pg_cursor, mongo_collection) -> UploadResult:
-    async def _upload(paste_text: str) -> UploadResult:
+    async def _upload(paste_text: str, expires_in: str = None) -> UploadResult:
         # Preparation
         utf_text = paste_text.encode('utf-8')
         utf_len = len(utf_text)
         now_utc = datetime.now(timezone.utc)
 
         # API call
-        response = await service_client.post(f'/api/v1/paste/', json={"text": paste_text})
+        request_json = {"text": paste_text}
+        if expires_in is not None:
+            request_json["expires_in"] = expires_in
+        response = await service_client.post(f'/api/v1/paste/', json=request_json)
         assert response.status == 200
         assert 'application/json' in response.headers['Content-Type']
 
@@ -40,8 +41,18 @@ async def api_upload_paste(service_client, pg_cursor, mongo_collection) -> Uploa
             WHERE id = %s
         """, (paste_id,))
         pg_created_at, pg_expires_at, pg_size_bytes, pg_delete_key = pg_cursor.fetchone()
+        pg_created_at = pg_created_at.astimezone(timezone.utc)
+        pg_expires_at = pg_expires_at.astimezone(timezone.utc)
+
+        lifetime_seconds = 0
+        if expires_in is None or expires_in == '1_week': lifetime_seconds = 60*60*24*7
+        elif expires_in == '1_hour': lifetime_seconds = 60*60
+        elif expires_in == '1_day': lifetime_seconds = 60*60*24
+        elif expires_in == '1_month': lifetime_seconds = 60*60*24*30
+        elif expires_in == '3_month': lifetime_seconds = 60*60*24*30*3
+
         assert abs((pg_created_at - now_utc).total_seconds()) <= 1
-        assert (pg_expires_at - pg_created_at).total_seconds() == DEFAULT_PASTE_LIFETIME_SECONDS
+        assert (pg_expires_at - pg_created_at).total_seconds() == lifetime_seconds, f"incorrect pg expires_at with param: {expires_in}"
         assert pg_size_bytes == utf_len
         assert pg_delete_key == delete_key
 
@@ -50,6 +61,7 @@ async def api_upload_paste(service_client, pg_cursor, mongo_collection) -> Uploa
         assert blob is not None
         assert blob["_id"] == paste_id
         assert blob["text"] == paste_text
+        assert abs(blob["expire_at"].astimezone(timezone.utc) - pg_expires_at).total_seconds() < 0.5
 
         return UploadResult(
             paste_id=paste_id,

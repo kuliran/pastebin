@@ -17,7 +17,7 @@ async def test_utf8(api_upload_paste):
 
 async def test_max_size(api_upload_paste):
     paste_text = "a" * (1024*1024)
-    await api_upload_paste(paste_text)
+    await api_upload_paste(paste_text, '1_week')
 
 async def test_too_large(service_client):
     paste_text = "a" * (1024*1024+1)
@@ -48,6 +48,13 @@ async def test_upload_k_and_get(api_upload_paste, api_get_paste, mongo_collectio
     for x in range(0, len(paste_texts)):
         get_response = await api_get_paste(upload_results[x].paste_id)
         assert_upload_and_get_results(upload_results[x], get_response, paste_texts[x])
+
+async def test_lifetimes(api_upload_paste):
+    paste_text = 'Hello, world!'
+    lifetimes = [None, '1_hour', '1_day', '1_week', '1_month', '3_month']
+
+    for x in lifetimes:
+        await api_upload_paste(paste_text, x)
 
 # =========================================
 # ============= LOCAL FIXTURES ============
