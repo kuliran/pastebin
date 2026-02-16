@@ -1,0 +1,140 @@
+# Production deployment configuration
+# Uses pre-built image from GitHub Container Registry
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: pastebin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      # - pg_data:/var/lib/postgresql/data
+      - ./paste-service/postgresql/schemas:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pastebin-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  mongo:
+    image: mongo:7.0
+    container_name: pastebin-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+    # volumes:
+      # - mongo_data:/data/db
+      # - mongo_config:/data/configdb
+    ports:
+      - "127.0.0.1:${MONGO_PORT}:${MONGO_PORT}"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pastebin-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  paste-service:
+    image: ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev:v2.15
+    #user: "${HOST_UID}:${HOST_GID}"
+    container_name: paste-service
+    restart: unless-stopped
+    environment:
+      CCACHE_DIR: /app/.ccache
+      POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
+      MONGO_CONNECTION: ${MONGO_CONNECTION}
+    volumes:
+      - ./paste-service:/app:rw
+    working_dir: /app
+    command: bash -c "
+      make build-release
+      && ./build-release/paste_service --config configs/static_config.yaml"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl 'http://paste-service/ping'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - pastebin-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: pastebin-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/conf.d:/etc/nginx/conf.d:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #     - nginx_cache:/var/cache/nginx
+  #   depends_on:
+  #     - paste-service
+  #   networks:
+  #     - pastebin-network
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: '0.5'
+  #         memory: 256M
+  #       reservations:
+  #         cpus: '0.25'
+  #         memory: 128M
+
+volumes:
+  postgres_data:
+    driver: local
+  mongo_data:
+    driver: local
+  # mongo_config:
+  #   driver: local
+  # nginx_cache:
+  #   driver: local
+
+networks:
+  pastebin-network:
+    driver: bridge

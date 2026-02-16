@@ -1,6 +1,6 @@
 {
   "containerEnv": {
-    "CCACHE_DIR": "/home/user/paste_service/.ccache",
+    "CCACHE_DIR": "/app/.ccache",
     "CORES_DIR": "/cores",
     "PREFIX": "${PREFIX:-~/.local}",
     "SHELL": "/bin/bash"
@@ -31,17 +31,14 @@
       }
     }
   },
-  "forwardPorts": [
-    8080
-  ],
   "mounts": [],
-  "onCreateCommand": "sudo git config --global --add safe.directory /home/user/paste_service",
+  "onCreateCommand": "sudo git config --global --add safe.directory /app",
   "remoteUser": "user",
   "runArgs": [
     "--cap-add=SYS_PTRACE",
     "--security-opt",
     "seccomp=unconfined"
   ],
-  "workspaceFolder": "/home/user/paste_service",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/home/user/paste_service,type=bind"
+  "workspaceFolder": "/app",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind"
 }
