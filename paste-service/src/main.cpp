@@ -30,8 +30,6 @@ int main(int argc, char* argv[]) {
             .Append<userver::clients::dns::Component>()
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
-            .Append<userver::components::Secdist>()
-            .Append<userver::components::DefaultSecdistProvider>()
             .Append<userver::components::Postgres>("postgres-db-1")
             .Append<userver::components::Mongo>("mongo-db-1")
 

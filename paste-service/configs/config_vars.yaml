@@ -6,4 +6,5 @@ is-testing: false
 
 server-port: 8080
 
-secdist-path: configs/secdist.json
+pg-connection#env: POSTGRES_CONNECTION
+mongo-connection#env: MONGO_CONNECTION

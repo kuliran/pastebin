@@ -6,4 +6,5 @@ is-testing: true
 
 server-port: 8080
 
-secdist-path: configs/secdist.testing.json
+pg-connection: postgresql://testsuite@localhost:15433/pg_pastes_db_1
+mongo-connection: mongodb://localhost:27217/pastes_db_1

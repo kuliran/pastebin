@@ -1,5 +1,6 @@
 import pytest
 import pathlib
+import yaml
 
 from testsuite.databases.pgsql import discover
 
@@ -43,6 +44,18 @@ def pgsql_local(service_source_dir, pgsql_local_create):
     )
     return pgsql_local_create(list(databases.values()))
 
+@pytest.fixture(scope='session')
+def userver_pg_config(service_static_config):
+    component = service_static_config['components_manager']['components'].get('postgres-db-1')
+    dbconnection = component.get('dbconnection')
+    
+    def _userver_pg_config(config_vars, config_vars_path):
+        return {
+            'postgres-db-1': {
+                'dbconnection': dbconnection,
+            }
+        }
+    return _userver_pg_config
 
 # ================================
 # GENERAL
@@ -54,6 +67,12 @@ def userver_config_secdist():
         project_dir = pathlib.Path(__file__).parent.parent
         config_vars['secdist-path'] = str(project_dir / 'configs' / 'secdist.testing.json')
     return _userver_config_secdist
+
+@pytest.fixture(scope='session')
+def service_static_config(service_source_dir):
+    config_path = service_source_dir / 'configs' / 'static_config.yaml'
+    with open(config_path) as f:
+        return yaml.safe_load(f)
 
 @pytest.fixture
 def mongo_collection(mongodb):
