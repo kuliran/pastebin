@@ -26,6 +26,7 @@ add_library(
     src/services/paste_service.cpp
     src/components/metadata_repo.cpp
     src/components/blob_repo.cpp
+    src/components/cache_purger.cpp
     src/handlers/get_paste.cpp
     src/handlers/upload_paste.cpp
     src/handlers/delete_paste.cpp
@@ -54,7 +55,9 @@ target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE ${PROJECT_NAME}_objs use
 add_google_benchmark_tests(${PROJECT_NAME}_benchmark)
 
 # Functional testing
-userver_testsuite_add_simple()
+userver_testsuite_add_simple(
+    REQUIREMENTS ${CMAKE_SOURCE_DIR}/tests/requirements.txt
+)
 
 # Install
 include(GNUInstallDirs)

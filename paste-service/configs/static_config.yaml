@@ -32,6 +32,8 @@ components_manager:
 
         blob-repo:
         metadata-repo:
+        cache-purger: # purges nginx cache on paste DELETE
+            load-enabled: $cache-purge-enabled # disabled in non-e2e tests
         paste-service:
 
         testsuite-support: {}

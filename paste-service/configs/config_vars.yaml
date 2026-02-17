@@ -3,6 +3,7 @@ worker-fs-threads: 2
 logger-level: info
 
 is-testing: false
+cache-purge-enabled: true
 
 server-port: 8080
 

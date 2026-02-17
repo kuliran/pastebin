@@ -17,6 +17,7 @@
 #include "services/paste_service.hpp"
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
+#include "components/cache_purger.hpp"
 #include "handlers/get_paste.hpp"
 #include "handlers/upload_paste.hpp"
 #include "handlers/delete_paste.hpp"
@@ -35,6 +36,7 @@ int main(int argc, char* argv[]) {
 
             .Append<paste_service::PasteService>()
             .Append<paste_service::MetadataRepo>()
+            .Append<paste_service::CachePurger>()
             .Append<paste_service::BlobRepo>()
             .Append<paste_service::GetPaste>()
             .Append<paste_service::UploadPaste>()

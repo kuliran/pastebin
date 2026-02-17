@@ -2,6 +2,7 @@
 
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
+#include "components/cache_purger.hpp"
 #include "services/dto/paste_dto.hpp"
 
 #include <userver/components/component_base.hpp>
@@ -28,6 +29,7 @@ private:
 
     MetadataRepo& metadata_repo_;
     BlobRepo& blob_repo_;
+    CachePurger* cache_purger_;
     mutable userver::concurrent::BackgroundTaskStorage background_tasks_;
 };
 

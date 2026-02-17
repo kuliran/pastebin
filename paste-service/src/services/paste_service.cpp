@@ -14,6 +14,7 @@ PasteService::PasteService(const components::ComponentConfig& config, const comp
     : components::LoggableComponentBase(config, component_context)
     , metadata_repo_(component_context.FindComponent<MetadataRepo>(MetadataRepo::kName))
     , blob_repo_(component_context.FindComponent<BlobRepo>(BlobRepo::kName))
+    , cache_purger_(component_context.FindComponentOptional<CachePurger>(CachePurger::kName))
 {}
 
 utils::expected<GetPasteResult, GetPasteError> PasteService::GetPaste(const std::string_view& id) const {
@@ -33,7 +34,7 @@ utils::expected<GetPasteResult, GetPasteError> PasteService::GetPaste(const std:
     if (!blob) {
         switch (blob.error()) {
             case paste_service::GetPasteBlobError::kNotFound: {
-                LOG_WARNING() << "Paste metadata exists, but no blob: " << id;
+                LOG_WARNING() << "Paste metadata exists, but no blob; paste_id=" << id;
                 return {GetPasteError::kNotExists};
             }
             default: {
@@ -114,16 +115,31 @@ utils::expected<DeletePasteResult, DeletePasteError> PasteService::DeletePaste(c
 
     // Background orphan blob cleanup
     background_tasks_.AsyncDetach(
-        "blob-cleanup",
+        "blob_cleanup",
         [&blob_repo = blob_repo_, // passing repo by ref - it's a component with lifetime of the whole process
             id = std::move(id)]() {
             try {
                 blob_repo.DeletePasteBlob(id);
             } catch (const engine::TaskCancelledException&) {
-                LOG_WARNING() << "Blob cleanup cancelled during shutdown; paste_id: " << id;
+                LOG_WARNING() << "Blob cleanup cancelled during shutdown; paste_id=" << id;
             }
         }
     );
+
+    // Background nginx cache purging
+    if (cache_purger_) {
+        background_tasks_.AsyncDetach(
+            "cache_purge",
+            [cache_purger = cache_purger_,
+                id = std::move(id)]() {
+                try {
+                    cache_purger->PurgePaste(id);
+                } catch (const engine::TaskCancelledException&) {
+                    LOG_WARNING() << "Cache purging cancelled during shutdown; paste_id=" << id;
+                }
+            }
+        );
+    }
 
     return dto::DeletePasteResult();
 }
