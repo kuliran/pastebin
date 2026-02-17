@@ -3,9 +3,9 @@ e2e tests
 Run from project root dir with:
     make e2e
 
-optionally, change the BASE_URL:
-    BASE_URL=http://example.com make e2e
-"""
+optionally, change the E2E_HOST (must match the one in nginx/conf.d/paste-service.conf) and E2E_URL:
+    E2E_URL=http://localhost  E2E_HOST=pastebin.io  make e2e
+""" 
 
 import time
 from dataclasses import dataclass
@@ -16,8 +16,8 @@ TIMEOUT = 10 # seconds for any request
 
 # ============================================
 class TestHealth:
-    def test_ping(self, base_url):
-        r = requests.get(f"{base_url}/ping", timeout=TIMEOUT)
+    def test_ping(self, base_url, headers):
+        r = requests.get(f"{base_url}/ping", headers=headers, timeout=TIMEOUT)
         assert r.status_code == 200
 
 # ============================================
@@ -30,9 +30,10 @@ class TestUploadPaste:
         r = upload_paste_raw("")
         assert r.status_code == 400
 
-    def test_upload_without_text_field_fails(self, base_url):
+    def test_upload_without_text_field_fails(self, base_url, headers):
         r = requests.post(
             f"{base_url}/api/v1/paste/",
+            headers=headers,
             json={},
             timeout=TIMEOUT,
         )
@@ -143,32 +144,35 @@ def upload_paste(upload_paste_raw):
     return _upload_paste
 
 @pytest.fixture(scope="session")
-def upload_paste_raw(base_url):
+def upload_paste_raw(base_url, headers):
     def _upload_paste_raw(text: str, **kwargs) -> requests.Response:
         payload = {"text": text, **kwargs}
         return requests.post(
             f"{base_url}/api/v1/paste/",
+            headers=headers,
             json=payload,
             timeout=TIMEOUT,
         )
     return _upload_paste_raw
 
 @pytest.fixture(scope="session")
-def get_paste_raw(base_url):
+def get_paste_raw(base_url, headers):
     def _get_paste_raw(paste_id: str, **kwargs) -> requests.Response:
         return requests.get(
             f"{base_url}/api/v1/{paste_id}",
+            headers=headers,
             timeout=TIMEOUT,
             **kwargs
         )
     return _get_paste_raw
 
 @pytest.fixture(scope="session")
-def delete_paste_raw(base_url):
+def delete_paste_raw(base_url, headers):
     def _delete_paste_raw(paste_id: str, delete_key: str, **kwargs) -> requests.Response:
         payload = {"delete_key": delete_key, **kwargs}
         return requests.delete(
             f"{base_url}/api/v1/delete/{paste_id}",
+            headers=headers,
             json=payload,
             timeout=TIMEOUT,
         )
