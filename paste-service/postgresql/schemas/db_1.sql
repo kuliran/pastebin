@@ -1,5 +1,4 @@
-DROP SCHEMA IF EXISTS pastes CASCADE;
-
+-- 001_init
 CREATE SCHEMA IF NOT EXISTS pastes;
 
 CREATE TABLE IF NOT EXISTS pastes.metadata (

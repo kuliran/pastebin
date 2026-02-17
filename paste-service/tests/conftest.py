@@ -1,5 +1,4 @@
 import pytest
-import pathlib
 import yaml
 
 from testsuite.databases.pgsql import discover
@@ -60,14 +59,6 @@ def userver_pg_config(service_static_config):
 # ================================
 # GENERAL
 # ================================
-
-@pytest.fixture(scope='session')
-def userver_config_secdist():
-    def _userver_config_secdist(config_yaml, config_vars):
-        project_dir = pathlib.Path(__file__).parent.parent
-        config_vars['secdist-path'] = str(project_dir / 'configs' / 'secdist.testing.json')
-    return _userver_config_secdist
-
 @pytest.fixture(scope='session')
 def service_static_config(service_source_dir):
     config_path = service_source_dir / 'configs' / 'static_config.yaml'
