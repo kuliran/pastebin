@@ -1,8 +1,7 @@
 # Production deployment configuration
-# Uses pre-built image from GitHub Container Registry
 
 services:
-  postgres:
+  pg:
     image: postgres:15-alpine
     container_name: pastebin-postgres
     restart: unless-stopped
@@ -12,8 +11,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      # - pg_data:/var/lib/postgresql/data
-      - ./paste-service/postgresql/schemas:/docker-entrypoint-initdb.d:ro
+      - ./.deploy_saved/pg:/var/lib/postgresql/data
+      - ./paste-service/postgresql/migrations:/docker-entrypoint-initdb.d:ro  # apply migrations
     ports:
       - "127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}"
     healthcheck:
@@ -40,9 +39,9 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_DB}
-    # volumes:
-      # - mongo_data:/data/db
-      # - mongo_config:/data/configdb
+    volumes:
+      - ./.deploy_saved/mongo:/data/db
+      - ./paste-service/mongodb/:/docker-entrypoint-initdb.d  # apply migrations
     ports:
       - "127.0.0.1:${MONGO_PORT}:${MONGO_PORT}"
     healthcheck:
@@ -63,7 +62,6 @@ services:
 
   paste-service:
     image: ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev:v2.15
-    #user: "${HOST_UID}:${HOST_GID}"
     container_name: paste-service
     restart: unless-stopped
     environment:
@@ -76,15 +74,15 @@ services:
     command: bash -c "
       make build-release
       && ./build-release/paste_service --config configs/static_config.yaml"
-    ports:
-      - "127.0.0.1:8080:8080"
+    expose:
+      - "8080" # only accessible through nginx
     depends_on:
-      postgres:
+      pg:
         condition: service_healthy
       mongo:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl 'http://paste-service/ping'"]
+      test: ["CMD", "curl 'http://localhost/ping'"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -100,40 +98,34 @@ services:
           cpus: '1'
           memory: 1G
 
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: pastebin-nginx
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./nginx/conf.d:/etc/nginx/conf.d:ro
-  #     - ./nginx/ssl:/etc/nginx/ssl:ro
-  #     - nginx_cache:/var/cache/nginx
-  #   depends_on:
-  #     - paste-service
-  #   networks:
-  #     - pastebin-network
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: '0.5'
-  #         memory: 256M
-  #       reservations:
-  #         cpus: '0.25'
-  #         memory: 128M
-
-volumes:
-  postgres_data:
-    driver: local
-  mongo_data:
-    driver: local
-  # mongo_config:
-  #   driver: local
-  # nginx_cache:
-  #   driver: local
+  nginx:
+    image: openresty/openresty:alpine
+    container_name: pastebin-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /var/cache/nginx/pastes
+    depends_on:
+      - paste-service
+    networks:
+      - pastebin-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
 
 networks:
   pastebin-network:
