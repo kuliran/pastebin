@@ -64,6 +64,7 @@ services:
     image: ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev:v2.15
     container_name: paste-service
     restart: unless-stopped
+    user: "${HOST_UID-1000}:${HOST_GID-1000}"
     environment:
       CCACHE_DIR: /app/.ccache
       POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
@@ -81,12 +82,6 @@ services:
         condition: service_healthy
       mongo:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl 'http://localhost/ping'"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
     networks:
       - pastebin-network
     deploy:
@@ -104,7 +99,6 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
@@ -113,11 +107,6 @@ services:
       - paste-service
     networks:
       - pastebin-network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     deploy:
       resources:
         limits:
