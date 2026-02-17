@@ -3,7 +3,7 @@ import time
 import requests
 import os
 
-BASE_URL = os.getenv("E2E_BASE_URL", "http://localhost:8080")
+BASE_URL = os.getenv("E2E_BASE_URL", "http://localhost")
 SERVICE_HOST = os.getenv("E2E_HOST", "pastebin.io")
 
 @pytest.fixture(scope="session")

@@ -4,6 +4,10 @@ e2e-install:
 	python3 -m venv tests/venv
 	tests/venv/bin/pip install -r tests/requirements.txt
 
+.PHONY: build
+build:
+	cd paste-service && make docker-build-release
+
 # Run E2E tests
 .PHONY: e2e
 e2e:
