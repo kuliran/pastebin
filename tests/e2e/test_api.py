@@ -11,6 +11,9 @@ import time
 from dataclasses import dataclass
 import pytest
 import requests
+from dateutil.parser import isoparse
+from datetime import datetime, timezone
+
 
 TIMEOUT = 10 # seconds for any request
 
@@ -54,6 +57,17 @@ class TestUploadPaste:
         r = upload_paste(text)
         r2 = get_paste_raw(r.paste_id)
         assert r2.json()['text'] == text
+
+    def test_expires_in_field(self, upload_paste, get_paste_raw):
+        now = datetime.now(timezone.utc)
+        r = upload_paste("Hello, world!", "3_month")
+        r2 = get_paste_raw(r.paste_id)
+        assert r2.status_code == 200
+
+        created_at = isoparse(r2.json()['created_at'])
+        expires_at = isoparse(r2.json()['expires_at'])
+        assert (expires_at - created_at).total_seconds() == 60*60*24*30*3
+        assert (created_at - now).total_seconds() <= 2
 
 
 # ============================================
@@ -131,8 +145,8 @@ class UploadPasteResult:
 
 @pytest.fixture(scope="session")
 def upload_paste(upload_paste_raw):
-    def _upload_paste(text: str, **kwargs) -> UploadPasteResult:
-        r = upload_paste_raw(text, **kwargs)
+    def _upload_paste(text: str, expires_in: str = None, **kwargs) -> UploadPasteResult:
+        r = upload_paste_raw(text, expires_in, **kwargs)
         assert r.status_code == 200
         assert r.headers["Content-Type"].startswith("application/json")
         json = r.json()
@@ -145,8 +159,10 @@ def upload_paste(upload_paste_raw):
 
 @pytest.fixture(scope="session")
 def upload_paste_raw(base_url, headers):
-    def _upload_paste_raw(text: str, **kwargs) -> requests.Response:
+    def _upload_paste_raw(text: str, expires_in: str = None, **kwargs) -> requests.Response:
         payload = {"text": text, **kwargs}
+        if expires_in is not None:
+            payload["expires_in"] = expires_in
         return requests.post(
             f"{base_url}/api/v1/paste/",
             headers=headers,
