@@ -77,10 +77,11 @@ docker-build-image:
 $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(addprefix docker-test-, $(PRESETS)) $(addprefix docker-clean-, $(PRESETS)): docker-%: | docker-build-image
 	docker run $(DOCKER_ARGS) \
 		--network=host \
-		-v $$PWD:$$PWD \
-		-w $$PWD \
+		-v $$PWD:/app:rw \
+		-w /app \
+		--rm \
 		$(DOCKER_EXTRA_OPTS) \
 		$(DOCKER_IMAGE) \
-		env CCACHE_DIR=$$PWD/.ccache \
+		env CCACHE_DIR=/app/.ccache \
 		    HOME=$$HOME \
-		    $$PWD/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) make $*
+		    /app/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) make $*
