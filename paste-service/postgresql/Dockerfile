@@ -1,3 +1,3 @@
 # Installs pg-partman for partitions
-FROM postgres:15-alpine
-RUN apk add --no-cache postgresql-pg_partman
+FROM postgres:14
+RUN apt-get update && apt-get install -y postgresql-14-partman && rm -rf /var/lib/apt/lists/*
