@@ -46,7 +46,7 @@ std::optional<UploadPasteMetadataError> MetadataRepo::UploadPasteMetadata(const 
             "INSERT INTO pastes.metadata "
             "(id, created_at, expires_at, size_bytes, delete_key) "
             "VALUES ($1, $2, $3, $4, $5) "
-            "ON CONFLICT (id) DO NOTHING",
+            "ON CONFLICT (id, expires_at) DO NOTHING",
             metadata.id,
             metadata.created_at,
             metadata.expires_at,

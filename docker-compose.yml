@@ -4,7 +4,7 @@ name: pastebin
 
 services:
   pg:
-    image: postgres:15-alpine
+    build: ./paste-service/postgresql
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
