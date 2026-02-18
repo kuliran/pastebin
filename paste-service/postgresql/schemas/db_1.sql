@@ -16,15 +16,9 @@ CREATE TABLE IF NOT EXISTS pastes.metadata (
 CREATE SCHEMA IF NOT EXISTS partman;
 CREATE EXTENSION IF NOT EXISTS pg_partman SCHEMA partman;
 
-SELECT pg_get_function_arguments(oid) 
-FROM pg_proc 
-WHERE proname = 'create_parent' 
-AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'partman');
-
 SELECT partman.create_parent(
     p_parent_table  => 'pastes.metadata',
     p_control       => 'expires_at',
-    p_type         => 'native',
     p_interval      => '1 week',
     p_premake       => 1
 );

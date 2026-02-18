@@ -52,12 +52,13 @@ jobs:
         run: make e2e-install
 
       - name: Start services
-        run: HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose up -d --wait
+        run: HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose up --build -d --wait
 
       - name: Logs (debugging)
         run: |
           docker compose logs paste-service
           docker compose logs nginx
+          docker compose logs pg-migrate
       
       - name: Run E2E
         run: cd tests && venv/bin/pytest e2e/ -v

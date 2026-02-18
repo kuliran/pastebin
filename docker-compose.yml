@@ -10,10 +10,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - ./.deploy_saved/pg:/var/lib/postgresql/data
-      - ./paste-service/postgresql/migrations:/docker-entrypoint-initdb.d:ro  # apply migrations
+      - pg_data:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}"
     healthcheck:
@@ -32,6 +30,21 @@ services:
           cpus: '0.5'
           memory: 512M
 
+  pg-migrate:
+    image: flyway/flyway
+    command: migrate
+    volumes:
+      - ./paste-service/postgresql/migrations:/flyway/sql
+    environment:
+      FLYWAY_URL: jdbc:postgresql://pg:${POSTGRES_PORT}/${POSTGRES_DB}
+      FLYWAY_USER: ${POSTGRES_USER}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      pg:
+        condition: service_healthy
+    networks:
+      - main
+
   mongo:
     image: mongo:7.0
     restart: unless-stopped
@@ -40,7 +53,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGO_DB}
     volumes:
-      - ./.deploy_saved/mongo:/data/db
+      - mongo_data:/data/db
       - ./paste-service/mongodb/:/docker-entrypoint-initdb.d  # apply migrations
     ports:
       - "127.0.0.1:${MONGO_PORT}:${MONGO_PORT}"
@@ -76,8 +89,8 @@ services:
     expose:
       - "8080" # only accessible through nginx
     depends_on:
-      pg:
-        condition: service_healthy
+      pg-migrate:
+        condition: service_completed_successfully
       mongo:
         condition: service_healthy
     networks:
@@ -118,6 +131,10 @@ services:
         reservations:
           cpus: '0.25'
           memory: 128M
+
+volumes:
+  pg_data:
+  mongo_data:
 
 networks:
   main:
