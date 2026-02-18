@@ -1,9 +1,10 @@
 # Production deployment configuration
 
+name: pastebin
+
 services:
   pg:
     image: postgres:15-alpine
-    container_name: pastebin-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -21,7 +22,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - pastebin-network
+      - main
     deploy:
       resources:
         limits:
@@ -33,7 +34,6 @@ services:
 
   mongo:
     image: mongo:7.0
-    container_name: pastebin-mongo
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
@@ -50,7 +50,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - pastebin-network
+      - main
     deploy:
       resources:
         limits:
@@ -62,7 +62,6 @@ services:
 
   paste-service:
     image: ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev:v2.15
-    container_name: paste-service
     restart: unless-stopped
     user: "${HOST_UID-1000}:${HOST_GID-1000}"
     environment:
@@ -82,13 +81,14 @@ services:
       mongo:
         condition: service_healthy
     networks:
-      - pastebin-network
+      - main
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
       interval: 15s
       timeout: 5s
       retries: 20
     deploy:
+      replicas: 2
       resources:
         limits:
           cpus: '2'
@@ -99,7 +99,6 @@ services:
 
   nginx:
     image: openresty/openresty:alpine
-    container_name: pastebin-nginx
     restart: unless-stopped
     ports:
       - "80:80"
@@ -110,7 +109,7 @@ services:
     depends_on:
       - paste-service
     networks:
-      - pastebin-network
+      - main
     deploy:
       resources:
         limits:
@@ -121,5 +120,5 @@ services:
           memory: 128M
 
 networks:
-  pastebin-network:
+  main:
     driver: bridge

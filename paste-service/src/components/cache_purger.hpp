@@ -13,7 +13,7 @@ public:
 
     void PurgePaste(const std::string_view& id) const;
 private:
-    static constexpr std::string_view kNginxUrl = "http://pastebin-nginx/purge/api/v1/";
+    static constexpr std::string_view kNginxUrl = "http://nginx/purge/api/v1/";
 
     userver::clients::http::Client& http_client_;
 };
