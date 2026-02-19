@@ -1,4 +1,4 @@
-# Project: pastebin
+# pastebin
 An online service for uploading text snippets and sharing links to them with others.<br>
 Snippets are automatically deleted after some time (TTL).
 
@@ -66,4 +66,5 @@ curl -v -H "Host: pastebin.io" http://localhost/api/v1/YOUR_ID
 
 # Delete a paste by providing both its id and a secret delete key
 curl -v -X DELETE -H "Host: pastebin.io" -H "Content-Type: application/json" http://localhost/api/v1/delete/YOUR_ID -d '{"delete_key": "YOUR_KEY"}'
+
 ```
