@@ -23,10 +23,6 @@ on:
         type: string
         default: ""
 
-env:
-  UBSAN_OPTIONS: print_stacktrace=1
-  USERVER_STACK_USAGE_MONITOR: false # otherwise userver breaks CI with SIGABRT
-
 jobs:
   build-test:
     runs-on: ubuntu-latest
@@ -79,7 +75,9 @@ jobs:
       - name: Test
         if: inputs.run-tests && inputs.build-type == 'debug'
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}test-${{ inputs.build-type }} \
-          DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined" # runs container in privileged mode
+          DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined -e" \
+          DOCKER_EXTRA_ENV="UBSAN_OPTIONS='print_stacktrace=1'"
+          # --security-opt runs container in privileged mode
           # because otherwise StackUsageMonitor causes userver to SIGABRT in CI builds
         working-directory: ${{ inputs.service-name }}
 
