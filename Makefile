@@ -11,7 +11,7 @@ build:
 # Run E2E tests
 .PHONY: e2e
 e2e: down
-	HOST_UID=$(id -u) HOST_GID=$(id -g) docker compose up --build -d --wait
+	HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose up --build -d --wait
 	cd tests && venv/bin/pytest e2e/ -v
 	docker compose down
 
