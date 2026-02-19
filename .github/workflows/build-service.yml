@@ -75,7 +75,7 @@ jobs:
       - name: Test
         if: inputs.run-tests && inputs.build-type == 'debug'
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}test-${{ inputs.build-type }} \
-          DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined -e" \
+          DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined" \
           DOCKER_EXTRA_ENV="UBSAN_OPTIONS='print_stacktrace=1'"
           # --security-opt runs container in privileged mode
           # because otherwise StackUsageMonitor causes userver to SIGABRT in CI builds
