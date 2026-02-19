@@ -1,4 +1,4 @@
-# Project: pastebin
+# pastebin
 An online service for uploading text snippets and sharing links to them with others.<br>
 Snippets are automatically deleted after some time (TTL).
 
