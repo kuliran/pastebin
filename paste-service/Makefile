@@ -5,6 +5,7 @@ DOCKER_IMAGE ?= paste-service-dev:latest # uses Dockerfile.dev
 CMAKE_OPTS ?=
 DOCKER_ENV ?=
 DOCKER_EXTRA_OPTS ?=
+DOCKER_EXTRA_ENV ?=
 # If we're under TTY, pass "-it" to "docker run"
 DOCKER_ARGS = $(shell /bin/test -t 0 && /bin/echo -it || echo)
 PRESETS ?= debug release debug-custom release-custom
@@ -77,10 +78,12 @@ docker-build-image:
 $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(addprefix docker-test-, $(PRESETS)) $(addprefix docker-clean-, $(PRESETS)): docker-%: | docker-build-image
 	docker run $(DOCKER_ARGS) \
 		--network=host \
-		-v $$PWD:$$PWD \
-		-w $$PWD \
+		-v $$PWD:/app:rw \
+		-w /app \
+		--rm \
 		$(DOCKER_EXTRA_OPTS) \
 		$(DOCKER_IMAGE) \
-		env CCACHE_DIR=$$PWD/.ccache \
+		env CCACHE_DIR=/app/.ccache \
 		    HOME=$$HOME \
-		    $$PWD/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) make $*
+			$(DOCKER_EXTRA_ENV) \
+		    /app/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) make $*
