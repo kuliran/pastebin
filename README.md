@@ -45,11 +45,18 @@ Snippets are automatically deleted after some time (TTL).
 
 ## How to run
 Run on Linux or WSL.
-- Simply do `docker compose up --build -d`
-- You can try e2e tests: `make build && make e2e-install && make e2e`
-- Development of services is done in **devcontainers**
+1. Build service binaries: `make build`
+2. Deploy: `docker compose up --build -d`
+    - Or you can try **e2e tests**: `make e2e-install && make e2e`
+
+### Development
+Development of services is done in **devcontainers**.<br>
+Alternatively, run `cd paste-service && make docker-test-debug`
+- Note: `docker-test-debug` aborts with `StackUsageMonitor` issues - either run container in privileged mode (see `.github/worflows/build-service.yml`) or use `devcontainers`
 
 ### Manual testing
+1. Deploy the full infrastructure: `make build && docker compose up --build -d`
+2. Test endpoints:
 ```bash
 # Upload a paste, get "id" and "delete_key"
 curl -v -X POST -H "Host: pastebin.io" -H "Content-Type: application/json" http://localhost/api/v1/paste -d '{"text": "YOUR_TEXT"}'
