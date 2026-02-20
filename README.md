@@ -51,7 +51,7 @@ Run on Linux or WSL.
 
 ### Development
 Development of services is done in **devcontainers**.<br>
-Alternatively, run `cd paste-service && make docker-test-debug`
+Alternatively, run `cd services/paste-service && make docker-test-debug`
 - Note: `docker-test-debug` aborts with `StackUsageMonitor` issues - either run container in privileged mode (see `.github/worflows/build-service.yml`) or use `devcontainers`
 
 ### Manual testing

@@ -4,7 +4,7 @@ name: pastebin
 
 services:
   pg:
-    build: ./paste-service/postgresql
+    build: ./services/paste-service/postgresql
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -34,7 +34,7 @@ services:
     image: flyway/flyway
     command: migrate
     volumes:
-      - ./paste-service/postgresql/migrations:/flyway/sql
+      - ./services/paste-service/postgresql/migrations:/flyway/sql
     environment:
       FLYWAY_URL: jdbc:postgresql://pg:${POSTGRES_PORT}/${POSTGRES_DB}
       FLYWAY_USER: ${POSTGRES_USER}
@@ -54,7 +54,7 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_DB}
     volumes:
       - mongo_data:/data/db
-      - ./paste-service/mongodb/:/docker-entrypoint-initdb.d  # apply migrations
+      - ./services/paste-service/mongodb/:/docker-entrypoint-initdb.d  # apply migrations
     ports:
       - "127.0.0.1:${MONGO_PORT}:${MONGO_PORT}"
     healthcheck:
@@ -82,7 +82,7 @@ services:
       POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
       MONGO_CONNECTION: ${MONGO_CONNECTION}
     volumes:
-      - ./paste-service:/app:rw
+      - ./services/paste-service:/app:rw
     working_dir: /app
     command: bash -c "
       ./build-release/paste_service --config configs/static_config.yaml"

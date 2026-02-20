@@ -47,7 +47,7 @@ jobs:
       - name: Cache ccache directory
         uses: actions/cache@v4
         with:
-          path: ${{ inputs.service-name }}/.ccache
+          path: services/${{ inputs.service-name }}/.ccache
           key: ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-${{ github.ref }}-${{ github.run_number }}
           restore-keys: |
             ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-${{ github.ref }}-
@@ -57,20 +57,20 @@ jobs:
         if: inputs.run-in-docker
         run: |
           [ -f run_as_user.sh ] && chmod +x run_as_user.sh || true
-        working-directory: ${{ inputs.service-name }}
+        working-directory: services/${{ inputs.service-name }}
 
       - name: Clean build dir
         run: |
            rm -rf build-${{ inputs.build-type }} || true
-        working-directory: ${{ inputs.service-name }}
+        working-directory: services/${{ inputs.service-name }}
 
       - name: CMake
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}cmake-${{ inputs.build-type }}
-        working-directory: ${{ inputs.service-name }}
+        working-directory: services/${{ inputs.service-name }}
 
       - name: Build
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}build-${{ inputs.build-type }}
-        working-directory: ${{ inputs.service-name }}
+        working-directory: services/${{ inputs.service-name }}
 
       - name: Test
         if: inputs.run-tests && inputs.build-type == 'debug'
@@ -79,11 +79,11 @@ jobs:
           DOCKER_EXTRA_ENV="UBSAN_OPTIONS='print_stacktrace=1'"
           # --security-opt runs container in privileged mode
           # because otherwise StackUsageMonitor causes userver to SIGABRT in CI builds
-        working-directory: ${{ inputs.service-name }}
+        working-directory: services/${{ inputs.service-name }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         if: inputs.upload-artifact != ''
         with:
           name: ${{ inputs.service-name }}-binary
-          path: ${{ inputs.service-name }}/build-${{ inputs.build-type }}/${{ inputs.upload-artifact }}
+          path: services/${{ inputs.service-name }}/build-${{ inputs.build-type }}/${{ inputs.upload-artifact }}
