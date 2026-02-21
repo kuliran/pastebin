@@ -1,0 +1,45 @@
+{
+  "name": "pastebin",
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "./docker-compose.dev.yml"
+  ],
+  "containerEnv": {
+    "CCACHE_DIR": "/app/.ccache",
+    "CORES_DIR": "/cores",
+    "PREFIX": "${PREFIX:-~/.local}",
+    "SHELL": "/bin/bash"
+  },
+  "service": "devcontainer",
+  "runServices": [
+    "devcontainer"
+  ],
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.makefile-tools",
+        "vadimcn.vscode-lldb",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "clangd.arguments": [
+          "--background-index",
+          "--compile-commands-dir=.vscode",
+          "--clang-tidy",
+          "--completion-style=detailed",
+          "--header-insertion=never"
+        ],
+        "clangd.path": "/usr/bin/clangd",
+        "cmake.automaticReconfigure": false,
+        "cmake.configureOnEdit": false,
+        "cmake.configureOnOpen": false
+      }
+    }
+  },
+  "mounts": [],
+  "onCreateCommand": "git config --global --add safe.directory /app",
+  "workspaceFolder": "/app"
+}

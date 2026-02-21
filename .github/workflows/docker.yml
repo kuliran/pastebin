@@ -11,7 +11,14 @@ name: Docker build
           - feature/**
 
 jobs:
-  test-debug-paste-service:
+  test-debug-read-service:
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: paste-service
+      build-type: debug
+      run-tests: true
+      run-in-docker: true
+  test-debug-write-service:
     uses: ./.github/workflows/build-service.yml
     with:
       service-name: paste-service
@@ -19,18 +26,26 @@ jobs:
       run-tests: true
       run-in-docker: true
 
-  build-release-paste-service:
+  build-release-read-service:
     uses: ./.github/workflows/build-service.yml
     with:
-      service-name: paste-service
+      service-name: read-service
       build-type: release
       run-tests: false
       run-in-docker: true
-      upload-artifact: paste_service
+      upload-artifact: read_service
+  build-release-write-service:
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: write-service
+      build-type: release
+      run-tests: false
+      run-in-docker: true
+      upload-artifact: write_service
 
   test-e2e:
     runs-on: ubuntu-latest
-    needs: build-release-paste-service
+    needs: [build-release-read-service, build-release-write-service]
 
     steps:
       - name: Checkout code
@@ -38,14 +53,23 @@ jobs:
         with:
           submodules: true
 
-      - name: Download release binary
+      - name: Download read-service release binary
         uses: actions/download-artifact@v4
         with:
-          name: paste-service-binary
-          path: services/paste-service/build-release/
+          name: read-service-binary
+          path: services/read-service/build-release/
 
       - name: Fix permissions
-        run: chmod +x services/paste-service/build-release/paste_service
+        run: chmod +x services/read-service/build-release/read_service
+
+      - name: Download write-service release binary
+        uses: actions/download-artifact@v4
+        with:
+          name: write-service-binary
+          path: services/write-service/build-release/
+
+      - name: Fix permissions
+        run: chmod +x services/write-service/build-release/write_service
 
       - name: Install E2E dependencies
         run: make e2e-install
@@ -55,7 +79,6 @@ jobs:
 
       - name: Log (debugging)
         run: |
-          docker compose logs paste-service
           docker compose logs nginx
           docker compose logs pg-migrate
       

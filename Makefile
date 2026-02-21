@@ -6,7 +6,8 @@ e2e-install:
 
 .PHONY: build
 build:
-	cd services/paste-service && make docker-build-release
+	cd services/read-service && make docker-build-release
+	cd services/write-service && make docker-build-release
 
 # Run E2E tests
 .PHONY: e2e

@@ -78,7 +78,7 @@ jobs:
           DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined" \
           DOCKER_EXTRA_ENV="UBSAN_OPTIONS='print_stacktrace=1'"
           # --security-opt runs container in privileged mode
-          # because otherwise StackUsageMonitor causes userver to SIGABRT in CI builds
+          # because otherwise StackUsageMonitor causes userver to SIGABRT in debug builds
         working-directory: services/${{ inputs.service-name }}
 
       - name: Upload artifact

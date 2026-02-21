@@ -1,0 +1,21 @@
+services:
+  devcontainer:
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile.dev
+    volumes:
+      - .:/app
+      - .ccache:/app/.ccache
+    environment:
+      POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
+      MONGO_CONNECTION: ${MONGO_CONNECTION}
+    command: sleep infinity
+    networks:
+      - main
+
+    # cap-add & seccomp are for debugger to work properly
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined

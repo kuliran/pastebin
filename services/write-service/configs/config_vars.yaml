@@ -1,0 +1,11 @@
+worker-threads: 4
+worker-fs-threads: 2
+logger-level: info
+
+is-testing: false
+cache-purge-enabled: true
+
+server-port: 8080
+
+pg-connection#env: POSTGRES_CONNECTION
+mongo-connection#env: MONGO_CONNECTION

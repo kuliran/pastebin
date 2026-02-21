@@ -4,7 +4,7 @@ name: pastebin
 
 services:
   pg:
-    build: ./services/paste-service/postgresql
+    build: ./db/postgresql
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -34,7 +34,7 @@ services:
     image: flyway/flyway
     command: migrate
     volumes:
-      - ./services/paste-service/postgresql/migrations:/flyway/sql
+      - ./db/postgresql/migrations:/flyway/sql
     environment:
       FLYWAY_URL: jdbc:postgresql://pg:${POSTGRES_PORT}/${POSTGRES_DB}
       FLYWAY_USER: ${POSTGRES_USER}
@@ -54,7 +54,7 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_DB}
     volumes:
       - mongo_data:/data/db
-      - ./services/paste-service/mongodb/:/docker-entrypoint-initdb.d  # apply migrations
+      - ./db/mongodb:/docker-entrypoint-initdb.d  # apply migrations
     ports:
       - "127.0.0.1:${MONGO_PORT}:${MONGO_PORT}"
     healthcheck:
@@ -73,19 +73,54 @@ services:
           cpus: '0.5'
           memory: 512M
 
-  paste-service:
+  read-service:
     image: ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev:v2.15
     restart: unless-stopped
     user: "${HOST_UID-1000}:${HOST_GID-1000}"
     environment:
-      CCACHE_DIR: /app/.ccache
       POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
       MONGO_CONNECTION: ${MONGO_CONNECTION}
     volumes:
-      - ./services/paste-service:/app:rw
+      - ./services/read-service:/app:rw
     working_dir: /app
     command: bash -c "
-      ./build-release/paste_service --config configs/static_config.yaml"
+      ./build-release/read_service --config configs/static_config.yaml"
+    expose:
+      - "8080" # only accessible through nginx
+    depends_on:
+      pg-migrate:
+        condition: service_completed_successfully
+      mongo:
+        condition: service_healthy
+    networks:
+      - main
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  write-service:
+    image: ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev:v2.15
+    restart: unless-stopped
+    user: "${HOST_UID-1000}:${HOST_GID-1000}"
+    environment:
+      POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
+      MONGO_CONNECTION: ${MONGO_CONNECTION}
+    volumes:
+      - ./services/write-service:/app:rw
+    working_dir: /app
+    command: bash -c "
+      ./build-release/write_service --config configs/static_config.yaml"
     expose:
       - "8080" # only accessible through nginx
     depends_on:
@@ -120,7 +155,8 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - /var/cache/nginx/pastes
     depends_on:
-      - paste-service
+      - read-service
+      - write-service
     networks:
       - main
     deploy:
