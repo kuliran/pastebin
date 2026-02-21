@@ -14,14 +14,14 @@ jobs:
   test-debug-read-service:
     uses: ./.github/workflows/build-service.yml
     with:
-      service-name: paste-service
+      service-name: read-service
       build-type: debug
       run-tests: true
       run-in-docker: true
   test-debug-write-service:
     uses: ./.github/workflows/build-service.yml
     with:
-      service-name: paste-service
+      service-name: write-service
       build-type: debug
       run-tests: true
       run-in-docker: true

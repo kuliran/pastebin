@@ -47,7 +47,7 @@ jobs:
       - name: Cache ccache directory
         uses: actions/cache@v4
         with:
-          path: services/${{ inputs.service-name }}/.ccache
+          path: .ccache
           key: ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-${{ github.ref }}-${{ github.run_number }}
           restore-keys: |
             ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-${{ github.ref }}-
