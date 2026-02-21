@@ -59,15 +59,6 @@ jobs:
           [ -f run_as_user.sh ] && chmod +x run_as_user.sh || true
         working-directory: shared/
 
-      - name: Clean build dir
-        run: |
-           rm -rf build-${{ inputs.build-type }} || true
-        working-directory: services/${{ inputs.service-name }}
-
-      - name: CMake
-        run: make ${{ inputs.run-in-docker && 'docker-' || '' }}cmake-${{ inputs.build-type }}
-        working-directory: services/${{ inputs.service-name }}
-
       - name: Build
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}build-${{ inputs.build-type }}
         working-directory: services/${{ inputs.service-name }}
