@@ -57,7 +57,7 @@ jobs:
         if: inputs.run-in-docker
         run: |
           [ -f run_as_user.sh ] && chmod +x run_as_user.sh || true
-        working-directory: services/${{ inputs.service-name }}
+        working-directory: shared/
 
       - name: Clean build dir
         run: |
