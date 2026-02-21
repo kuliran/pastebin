@@ -16,27 +16,6 @@ BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::
     , mongo_pool_(component_context.FindComponent<components::Mongo>(kDefaultMongoComponent).GetPool())
 {}
 
-utils::expected<PasteBlob, GetPasteBlobError> BlobRepo::GetPasteBlob(const std::string_view& id) const {
-    using formats::bson::MakeDoc;
-
-    try {
-        const auto blob_collection = mongo_pool_->GetCollection("pastes");
-        const auto mongo_result = blob_collection.FindOne(MakeDoc("_id", id));
-        if (!mongo_result)
-            return {GetPasteBlobError::kNotFound};
-
-        try {
-            return mongo_result->As<PasteBlob>();
-        } catch (const std::exception& e) {
-            LOG_ERROR() << "Failed to parse PasteBlob: " << e.what();
-            return {GetPasteBlobError::kInvalidData};
-        }
-    } catch (const storages::mongo::MongoException& e) {
-        LOG_ERROR() << "DB error: " << e.what();
-        return {GetPasteBlobError::kDbError};
-    }
-}
-
 std::optional<UploadPasteBlobError> BlobRepo::UploadPasteBlob(const PasteBlob& blob) const {
     using formats::bson::MakeDoc;
 

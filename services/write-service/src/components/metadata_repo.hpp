@@ -30,9 +30,6 @@ public:
 
     MetadataRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
-    userver::utils::expected<PasteMetadata, GetPasteMetadataError>
-        GetPasteMetadata(const std::string_view& id) const;
-
     std::optional<UploadPasteMetadataError>
         UploadPasteMetadata(const PasteMetadata& metadata) const;
 
