@@ -53,4 +53,4 @@ formats::json::Value DeletePaste::
     return {};
 }
 
-}  // namespace paste_service
+}  // namespace write_service

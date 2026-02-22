@@ -71,4 +71,4 @@ formats::json::Value UploadPaste::
     return formats::json::ValueBuilder(std::move(result.value())).ExtractValue();
 }
 
-}  // namespace paste_service
+}  // namespace write_service

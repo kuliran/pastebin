@@ -20,4 +20,4 @@ private:
     WriteService& write_service_;
 };
 
-}  // namespace paste_service
+}  // namespace write_service
