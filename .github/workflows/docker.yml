@@ -50,10 +50,18 @@ jobs:
       build-type: debug
       run-tests: true
       run-in-docker: true
+  build-release-user-service:
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: user-service
+      build-type: release
+      run-tests: false
+      run-in-docker: true
+      upload-artifact: user_service
 
   test-e2e:
     runs-on: ubuntu-latest
-    needs: [build-release-read-service, build-release-write-service]
+    needs: [build-release-read-service, build-release-write-service, build-release-user-service]
 
     steps:
       - name: Checkout code
@@ -78,6 +86,15 @@ jobs:
 
       - name: Fix permissions
         run: chmod +x services/write-service/build-release/write_service
+
+      - name: Download user-service release binary
+        uses: actions/download-artifact@v4
+        with:
+          name: user-service-binary
+          path: services/user-service/build-release/
+
+      - name: Fix permissions
+        run: chmod +x services/user-service/build-release/user_service
 
       - name: Install E2E dependencies
         run: make e2e-install

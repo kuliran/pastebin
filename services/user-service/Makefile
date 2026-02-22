@@ -81,6 +81,7 @@ $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(
 	docker run $(DOCKER_ARGS) \
 		--network=host \
 		-v $(REPO_ROOT):/app:rw \
+		-v $(REPO_ROOT)/shared/keys/dev:/run/secrets:ro \
 		-w /app/services/user-service \
 		--rm \
 		$(DOCKER_EXTRA_OPTS) \

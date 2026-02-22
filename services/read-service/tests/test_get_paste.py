@@ -1,5 +1,5 @@
 import pytest
-from fixtures.raw_insert_paste import RawInsertResult
+from shared.fixtures.raw_insert_paste import RawInsertResult
 
 # =========================================
 # ================= TESTS =================
