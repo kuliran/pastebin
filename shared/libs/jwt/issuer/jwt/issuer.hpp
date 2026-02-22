@@ -16,7 +16,7 @@ public:
         std::chrono::seconds ttl = std::chrono::hours(1);
     };
     struct JwtIssueResult {
-        std::string token;
+        std::string tk;
         std::chrono::system_clock::time_point created_at;
         std::chrono::system_clock::time_point expires_at;
     };

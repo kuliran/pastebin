@@ -2,17 +2,19 @@ import pytest
 import yaml
 import pathlib
 import sys
+import aiohttp
 
 pytest_plugins = [
     'pytest_userver.plugins.core',
     'pytest_userver.plugins.postgresql', 
     'pytest_userver.plugins.mongo',
-    'fixtures.signup'
+    'shared.fixtures.signup',
+    'shared.fixtures.auth_refresh'
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'shared' / 'pytest'))
-from fixtures.make_pgsql import make_pgsql
+from shared.fixtures.make_pgsql import make_pgsql
 
 # ================================
 # POSTGRESQL

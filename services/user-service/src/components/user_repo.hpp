@@ -13,23 +13,36 @@ struct CreateUserParams {
     std::string pwd_hash;
     userver::storages::postgres::TimePointTz jwt_access_tk_created_at;
     userver::storages::postgres::TimePointTz jwt_access_tk_expires_at;
+    userver::storages::postgres::TimePointTz jwt_refresh_tk_created_at;
+    userver::storages::postgres::TimePointTz jwt_refresh_tk_expires_at;
 };
 struct CreateUserRepoResult {
-    std::string refresh_token;
+    std::string refresh_tk;
 };
 enum class CreateUserRepoError {
     kUsernameExists,
     kDbError,
 };
 
+struct RefreshJwtRepoResult {
+    std::string user_id;
+    std::string refresh_tk;
+};
+enum class RefreshJwtRepoError {
+    kUnauthorized,
+    kDbError,
+};
+
 class UserRepo final : public userver::components::LoggableComponentBase {
 public:
     static constexpr std::string_view kName = "user-repo";
-    using UserId = std::string;
 
     UserRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> CreateUserWithRefreshTk(const CreateUserParams&) const;
+    userver::utils::expected<RefreshJwtRepoResult, RefreshJwtRepoError> RefreshJwt(
+        const std::string& refresh_tk, std::chrono::system_clock::time_point created_at,
+        std::chrono::system_clock::time_point expires_at) const;
 private:
     static constexpr std::string_view kDefaultPgComponent = "postgres-db-1";
 

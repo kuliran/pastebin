@@ -3,6 +3,7 @@
 #include <userver/components/component.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/string_generator.hpp>
 
 using namespace userver;
 
@@ -41,11 +42,12 @@ userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::Cr
             "VALUES ($1, $2, $3) "
             "RETURNING refresh_tk",
             params.user_id,
-            params.jwt_access_tk_created_at,
-            params.jwt_access_tk_expires_at
+            params.jwt_refresh_tk_created_at,
+            params.jwt_refresh_tk_expires_at
         );
 
         auto refresh_tk = boost::uuids::to_string(jwt_result.AsSingleRow<boost::uuids::uuid>());
+        LOG_INFO() << "Created user user_id=" << params.user_id << " refresh_tk=" << refresh_tk;
 
         transaction.Commit();
         return CreateUserRepoResult{refresh_tk};
@@ -56,6 +58,46 @@ userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::Cr
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
         return {CreateUserRepoError::kDbError};
+    }
+}
+
+userver::utils::expected<RefreshJwtRepoResult, RefreshJwtRepoError> UserRepo::RefreshJwt(
+    const std::string& refresh_tk, std::chrono::system_clock::time_point created_at,
+    std::chrono::system_clock::time_point expires_at) const {
+    try {
+        boost::uuids::uuid cur_refresh_tk_uuid = boost::uuids::string_generator{}(refresh_tk);
+
+        LOG_DEBUG() << "Trying to refresh token: " << refresh_tk;
+
+        const auto result = pg_cluster_->Execute(
+            storages::postgres::ClusterHostType::kMaster,
+            "UPDATE users.jwt_sessions "
+            "SET refresh_tk = gen_random_uuid(), created_at = $2, expires_at = $3 "
+            "WHERE refresh_tk = $1 AND expires_at > NOW() "
+            "RETURNING user_id, refresh_tk",
+            cur_refresh_tk_uuid,
+            userver::storages::postgres::TimePointTz(created_at),
+            userver::storages::postgres::TimePointTz(expires_at)
+        );
+
+        if (result.RowsAffected() == 0) {
+            LOG_DEBUG() << "Refresh token invalid: " << refresh_tk;
+            return {RefreshJwtRepoError::kUnauthorized};
+        }
+
+        auto [user_id, new_refresh_tk_uuid] = result.AsSingleRow<std::tuple<std::string, boost::uuids::uuid>>(
+            storages::postgres::kRowTag
+        );
+        auto new_refresh_tk = boost::uuids::to_string(std::move(new_refresh_tk_uuid));
+        LOG_DEBUG() << "Refreshed token " << refresh_tk << "  ->  " << new_refresh_tk;
+
+        return RefreshJwtRepoResult{user_id, new_refresh_tk};
+    } catch(const storages::postgres::Error& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {RefreshJwtRepoError::kDbError};
+    } catch(const std::exception& e) {
+        LOG_INFO() << "exception: " << e.what();
+        return {RefreshJwtRepoError::kUnauthorized};
     }
 }
 

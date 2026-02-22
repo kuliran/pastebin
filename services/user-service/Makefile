@@ -81,7 +81,7 @@ $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(
 	docker run $(DOCKER_ARGS) \
 		--network=host \
 		-v $(REPO_ROOT):/app:rw \
-		-w /app/services/read-service \
+		-w /app/services/user-service \
 		--rm \
 		$(DOCKER_EXTRA_OPTS) \
 		$(DOCKER_IMAGE) \

@@ -11,8 +11,8 @@ struct UserCredentials {
 };
 struct CreateUserResult {
     std::string user_id;
-    std::string access_token;
-    std::string refresh_token;
+    std::string access_tk;
+    std::string refresh_tk;
     std::chrono::system_clock::time_point access_tk_expires_at;
 };
 enum class CreateUserError {
@@ -21,12 +21,14 @@ enum class CreateUserError {
     kDbError,
 };
 
-enum class CheckUserCredentialsError {
-    kDbError,
+struct RefreshJwtResult {
+    std::string access_tk;
+    std::string refresh_tk;
+    std::chrono::system_clock::time_point access_tk_expires_at;
 };
-
-enum class IssueJWTError {
-    
+enum class RefreshJwtError {
+    kUnauthorized,
+    kDbError,
 };
 
 }

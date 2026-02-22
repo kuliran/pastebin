@@ -11,13 +11,13 @@ pytest_plugins = [
     'pytest_userver.plugins.mongo',
     'fixtures.api_upload_paste',
     'fixtures.api_delete_paste',
-    'fixtures.raw_insert_paste',
-    'fixtures.raw_get_paste',
+    'shared.fixtures.raw_insert_paste',
+    'shared.fixtures.raw_get_paste',
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'shared' / 'pytest'))
-from fixtures.make_pgsql import make_pgsql
+from shared.fixtures.make_pgsql import make_pgsql
 
 # ================================
 # MONGODB

@@ -35,9 +35,9 @@ components_manager:
         jwt-middleware:
             public-key-path: /run/secrets/public.pem
             skip-endpoints:
-                - /api/v2/signup
-                - /api/v2/login
-                - /api/v2/refresh
+                - /api/v2/auth/signup
+                - /api/v2/auth/login
+                - /api/v2/auth/refresh
 
         testsuite-support: {}
 
@@ -59,7 +59,12 @@ components_manager:
             url_trailing_slash: strict-match
 
         handler-signup:
-            path: /api/v2/signup
+            path: /api/v2/auth/signup
+            method: POST
+            task_processor: main-task-processor
+
+        handler-refresh:
+            path: /api/v2/auth/refresh
             method: POST
             task_processor: main-task-processor
 

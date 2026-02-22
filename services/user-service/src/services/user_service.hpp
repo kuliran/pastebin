@@ -18,8 +18,7 @@ public:
 
     userver::utils::expected<dto::CreateUserResult, dto::CreateUserError> CreateUser(const dto::UserCredentials& creds) const;
     // userver::utils::expected<jwt_wrapper::JwtToken, dto::LoginError> Login(const std::string_view& user_id, const std::string_view& friend_id) const;
-
-    // jwt_wrapper::JwtToken RefreshJWT(const std::string_view& user_id, const std::string_view& refresh_tk) const;
+    userver::utils::expected<dto::RefreshJwtResult, dto::RefreshJwtError> RefreshJwt(const std::string& refresh_tk) const;
 
     // userver::utils::expected<bool, dto::GetFriendsError> AreFriends(const std::string_view& user_id, const std::string_view& friend_id) const;
     // userver::utils::expected<dto::GetFriendsResult, dto::GetFriendsError> GetFriends(const std::string_view& user_id) const;
@@ -33,6 +32,7 @@ private:
     }
 private:
     static constexpr std::string_view kPrivateKeyPath = "/run/secrets/private.pem";
+    static constexpr std::chrono::seconds kRefreshTkLifetime = std::chrono::hours(24*7); // 1 week
 
     UserRepo& user_repo_;
     jwt_wrapper::Issuer jwt_issuer_;

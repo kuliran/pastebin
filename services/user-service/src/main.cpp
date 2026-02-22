@@ -13,10 +13,11 @@
 
 #include <userver/utils/daemon_run.hpp>
 
+#include "jwt/middleware_http.hpp"
 #include "services/user_service.hpp"
 #include "components/user_repo.hpp"
 #include "handlers/signup.hpp"
-#include "jwt/middleware_http.hpp"
+#include "handlers/refresh.hpp"
 
 int main(int argc, char* argv[]) {
     auto component_list =
@@ -33,6 +34,7 @@ int main(int argc, char* argv[]) {
             .Append<user_service::UserService>()
             .Append<user_service::UserRepo>()
             .Append<user_service::Signup>()
+            .Append<user_service::Refresh>()
         ;
 
     return userver::utils::DaemonMain(argc, argv, component_list);

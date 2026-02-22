@@ -17,6 +17,7 @@ public:
 
     void HandleRequest(userver::server::http::HttpRequest& request,
         userver::server::request::RequestContext& context) const override {
+        LOG_INFO() << "@@ middleware";
         if (!skip_endpoints_.contains(request.GetRequestPath())) {
             const auto& header = request.GetHeader("Authorization");
             if (header.empty() || !header.starts_with("Bearer ")) {
@@ -28,12 +29,12 @@ public:
                 auto claims = verifier_.Verify(header.substr(7));
                 context.SetData("user_id", std::move(claims.user_id));
             } catch (const std::runtime_error& e) {
-                LOG_INFO() << e.what();
+                LOG_INFO() << "jwt unauthorized attempt: " << e.what();
                 request.SetResponseStatus(userver::server::http::HttpStatus::kUnauthorized);
                 return;
             }
         }
-
+        LOG_INFO() << "@@ next";
         Next(request, context);
     }
 
