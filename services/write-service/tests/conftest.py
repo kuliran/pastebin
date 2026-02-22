@@ -17,6 +17,7 @@ pytest_plugins = [
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'shared' / 'pytest'))
+from fixtures.make_pgsql import make_pgsql
 
 # ================================
 # MONGODB
@@ -37,15 +38,10 @@ def mongodb_settings():
 # ================================
 # POSTGRESQL
 # ================================
-
-@pytest.fixture(scope='session')
-def pgsql_local(pgsql_local_create):
-    """Create schemas databases for tests"""
-    databases = discover.find_schemas(
-        'pg_pastes',
-        [REPO_ROOT / 'db' / 'postgresql' / 'schemas'],
-    )
-    return pgsql_local_create(list(databases.values()))
+pgsql_local = make_pgsql(
+    'pg',
+    REPO_ROOT / 'db' / 'postgresql' / 'schemas'
+)
 
 @pytest.fixture(scope='session')
 def userver_pg_config(service_static_config):

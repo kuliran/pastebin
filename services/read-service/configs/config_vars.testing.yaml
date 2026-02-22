@@ -7,5 +7,5 @@ cache-purge-enabled: false
 
 server-port: 8080
 
-pg-connection: postgresql://testsuite@localhost:15433/pg_pastes_db_1
+pg-connection: postgresql://testsuite@localhost:15433/pg_db_1
 mongo-connection: mongodb://localhost:27217/pastes_db_1

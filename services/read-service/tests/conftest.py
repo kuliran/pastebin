@@ -15,6 +15,7 @@ pytest_plugins = [
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'shared' / 'pytest'))
+from fixtures.make_pgsql import make_pgsql
 
 # ================================
 # MONGODB
@@ -32,18 +33,21 @@ def mongodb_settings():
         },
     }
 
+@pytest.fixture
+def mongo_collection(mongodb):
+    return mongodb['pastes_db_1']
+
 # ================================
 # POSTGRESQL
 # ================================
+pgsql_local = make_pgsql(
+    'pg',
+    REPO_ROOT / 'db' / 'postgresql' / 'schemas'
+)
 
-@pytest.fixture(scope='session')
-def pgsql_local(pgsql_local_create):
-    """Create schemas databases for tests"""
-    databases = discover.find_schemas(
-        'pg_pastes',
-        [REPO_ROOT / 'db' / 'postgresql' / 'schemas'],
-    )
-    return pgsql_local_create(list(databases.values()))
+@pytest.fixture
+def pg_cursor(pgsql):
+    return pgsql['db_1'].cursor()
 
 @pytest.fixture(scope='session')
 def userver_pg_config(service_static_config):
@@ -66,11 +70,3 @@ def service_static_config(service_source_dir):
     config_path = service_source_dir / 'configs' / 'static_config.yaml'
     with open(config_path) as f:
         return yaml.safe_load(f)
-
-@pytest.fixture
-def mongo_collection(mongodb):
-    return mongodb['pastes_db_1']
-
-@pytest.fixture
-def pg_cursor(pgsql):
-    return pgsql['db_1'].cursor()
