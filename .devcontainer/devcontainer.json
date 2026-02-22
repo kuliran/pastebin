@@ -7,7 +7,7 @@
   "containerEnv": {
     "CCACHE_DIR": "/app/.ccache",
     "CORES_DIR": "/cores",
-    "PREFIX": "${PREFIX:-~/.local}",
+    "PREFIX": "${localEnv:PREFIX:~/.local}",
     "SHELL": "/bin/bash"
   },
   "service": "devcontainer",
