@@ -3,7 +3,7 @@ project(read_service CXX)
 
 set (SHARED_DIR ${CMAKE_SOURCE_DIR}/../../shared
     CACHE PATH "Path to shared directory")
-add_subdirectory(${SHARED_DIR}/models shared-models)
+add_subdirectory(${SHARED_DIR}/libs/models shared_models)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DownloadUserver)
@@ -37,7 +37,7 @@ target_link_libraries(
     PUBLIC userver::core
            userver::mongo
            userver::postgresql
-           shared-models
+           shared_models
 )
 
 
