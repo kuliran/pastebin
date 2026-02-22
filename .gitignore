@@ -1,1 +1,5 @@
 .ccache
+shared/pytest/**/__pycache__
+tests/venv/
+tests/e2e/__pycache__/
+tests/.pytest_cache/

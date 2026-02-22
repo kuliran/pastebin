@@ -1,5 +1,6 @@
 import pytest
 from dataclasses import dataclass
+import shared.utils.auth as auth
 
 @dataclass
 class SignupResult:
@@ -10,15 +11,12 @@ class SignupResult:
 def signup(service_client):
     async def _signup(username: str, password: str) -> SignupResult:
         body = {"username": username, "password": password}
-        response = await service_client.post('/api/v2/signup', json=body)
-        assert response.status == 200
-        assert 'application/json' in response.headers['Content-Type']
-
-        json = response.json()
-        assert type(json['access_tk']) is str
+        response = await service_client.post('/api/v2/auth/signup', json=body)
+        assert response.status == 201
+        tokens = auth.validate_response_tokens(response)
 
         return SignupResult(
-            access_tk=json['access_tk'],
-            refresh_tk=""
+            access_tk=tokens.access_tk,
+            refresh_tk=tokens.refresh_tk
         )
     return _signup
