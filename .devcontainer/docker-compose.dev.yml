@@ -12,10 +12,14 @@ services:
       MONGO_CONNECTION: ${MONGO_CONNECTION}
     command: sleep infinity
     networks:
-      - main
+      - dev
 
     # cap-add & seccomp are for debugger to work properly
     cap_add:
       - SYS_PTRACE
     security_opt:
       - seccomp:unconfined
+
+networks:
+  dev:
+    driver: bridge

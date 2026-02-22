@@ -8,15 +8,23 @@ e2e-install:
 build:
 	cd services/read-service && make docker-build-release
 	cd services/write-service && make docker-build-release
+	cd services/user-service && make docker-build-release
 
-# Run E2E tests
-.PHONY: e2e
-e2e: down
+# Run all containers for e2e tests
+.PHONY: e2e-up
+e2e-up:
 	HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose up --build -d --wait
+
+# Run e2e tests
+.PHONY: e2e
+e2e:
 	cd tests && venv/bin/pytest e2e/ -v
-	docker compose down
+
+# Reboot containers and run e2e
+.PHONY: e2e-fresh
+e2e-fresh: e2e-down e2e-up e2e
 
 # Stop and remove all containers
-.PHONY: down
-down:
+.PHONY: e2e-down
+e2e-down:
 	docker compose down
