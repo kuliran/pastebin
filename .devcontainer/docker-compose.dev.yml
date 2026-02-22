@@ -5,8 +5,8 @@ services:
       context: .
       dockerfile: .devcontainer/Dockerfile.dev
     volumes:
-      - .:/app
-      - .ccache:/app/.ccache
+      - .:/app:rw
+      - ./shared/keys/dev:/run/secrets:ro
     environment:
       POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
       MONGO_CONNECTION: ${MONGO_CONNECTION}

@@ -1,5 +1,13 @@
 FROM ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev:v2.15
 
+# Install argon2 for password hashing
+RUN apt-get install -y libargon2-dev
+
+# Install jwt-cpp
+RUN git clone https://github.com/Thalhammer/jwt-cpp.git /tmp/jwt-cpp \
+    && cp -r /tmp/jwt-cpp/include/* /usr/include/ \
+    && rm -rf /tmp/jwt-cpp
+
 # Install mongodb
 RUN wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null \
     && echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \

@@ -43,6 +43,14 @@ jobs:
       run-in-docker: true
       upload-artifact: write_service
 
+  test-debug-user-service:
+    uses: ./.github/workflows/build-service.yml
+    with:
+      service-name: user-service
+      build-type: debug
+      run-tests: true
+      run-in-docker: true
+
   test-e2e:
     runs-on: ubuntu-latest
     needs: [build-release-read-service, build-release-write-service]
