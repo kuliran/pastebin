@@ -29,7 +29,7 @@ async def test_expired(api_get_paste_expect_none, raw_insert_paste, mongo_collec
     paste_id = 'abc123'
     paste_text = 'abc'
 
-    await raw_insert_paste(paste_id, paste_text, 'xyz', '-1 second')
+    await raw_insert_paste(paste_id, paste_text, '-1 second')
     assert mongo_collection.count_documents({}) == 1
     await api_get_paste_expect_none(paste_id)
 
