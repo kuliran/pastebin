@@ -1,5 +1,4 @@
 #include "handlers/signup.hpp"
-#include "services/dto/user_dto.hpp"
 
 #include <userver/formats/json.hpp>
 
@@ -12,7 +11,7 @@ Signup::Signup(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , user_service_(component_context.FindComponent<UserService>(UserService::kName))
+    , user_service_(component_context.FindComponent<AuthService>(AuthService::kName))
     , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 
@@ -49,7 +48,7 @@ formats::json::Value Signup::
             }
         }
     }
-    
+
     auto refresh_tk_cookie = cookie_factory_.MakeRefreshTkCookie(
         std::move(result.value().refresh_tk),
         result.value().access_tk_expires_at

@@ -1,4 +1,4 @@
-#include "components/user_repo.hpp"
+#include "components/auth_repo.hpp"
 #include "utils/crypto.hpp"
 
 #include <userver/components/component.hpp>
@@ -10,12 +10,12 @@ using namespace userver;
 
 namespace user_service {
 
-UserRepo::UserRepo(const components::ComponentConfig& config, const components::ComponentContext& component_context)
+AuthRepo::AuthRepo(const components::ComponentConfig& config, const components::ComponentContext& component_context)
     : components::LoggableComponentBase(config, component_context)
     , pg_cluster_(component_context.FindComponent<components::Postgres>(kDefaultPgComponent).GetCluster())
 {}
 
-userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::CreateUserWithSession(const CreateUserParams& params) const {
+userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> AuthRepo::CreateUserWithSession(const CreateUserParams& params) const {
     try {
         auto transaction = pg_cluster_->Begin(
             storages::postgres::ClusterHostType::kMaster,
@@ -63,7 +63,7 @@ userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::Cr
     }
 }
 
-userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> UserRepo::CreateSession(
+userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> AuthRepo::CreateSession(
     const dto::UserCredentials& creds, std::chrono::system_clock::time_point created_at,
     std::chrono::system_clock::time_point expires_at) const {
     try {
@@ -112,7 +112,7 @@ userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> User
     }
 }
 
-userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> UserRepo::RefreshSession(
+userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> AuthRepo::RefreshSession(
     const std::string& refresh_tk, std::chrono::system_clock::time_point created_at,
     std::chrono::system_clock::time_point expires_at) const {
     try {

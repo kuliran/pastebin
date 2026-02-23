@@ -32,12 +32,8 @@ components_manager:
 
         user-repo:
         user-service:
-        jwt-middleware:
+        jwt-verifier:
             public-key-path: /run/secrets/public.pem
-            skip-endpoints:
-                - /api/v2/auth/signup
-                - /api/v2/auth/login
-                - /api/v2/auth/refresh
         cookie-factory:
             secure-refresh-tk: $secure-auth-cookie
 

@@ -1,5 +1,4 @@
 #include "handlers/login.hpp"
-#include "services/dto/user_dto.hpp"
 
 #include <userver/formats/json.hpp>
 
@@ -12,7 +11,7 @@ Login::Login(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , user_service_(component_context.FindComponent<UserService>(UserService::kName))
+    , user_service_(component_context.FindComponent<AuthService>(AuthService::kName))
     , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 

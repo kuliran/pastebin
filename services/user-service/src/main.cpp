@@ -13,15 +13,16 @@
 
 #include <userver/utils/daemon_run.hpp>
 
-#include "jwt/middleware_http.hpp"
-#include "services/user_service.hpp"
-#include "components/user_repo.hpp"
+#include "jwt/auth_checker_http.hpp"
+#include "services/auth_service.hpp"
+#include "components/auth_repo.hpp"
 #include "components/cookie_factory.hpp"
 #include "handlers/signup.hpp"
 #include "handlers/login.hpp"
 #include "handlers/refresh.hpp"
 
 int main(int argc, char* argv[]) {
+    userver::server::handlers::auth::RegisterAuthCheckerFactory<jwt_wrapper::JwtCheckerFactory>();
     auto component_list =
         userver::components::MinimalServerComponentList()
             .Append<userver::server::handlers::Ping>()
@@ -32,9 +33,9 @@ int main(int argc, char* argv[]) {
             .Append<userver::congestion_control::Component>()
             .Append<userver::components::Postgres>("postgres-db-1")
 
-            .Append<jwt_wrapper::JwtMiddlewareFactory>()
-            .Append<user_service::UserService>()
-            .Append<user_service::UserRepo>()
+            .Append<jwt_wrapper::JwtVerifierComponent>()
+            .Append<user_service::AuthService>()
+            .Append<user_service::AuthRepo>()
             .Append<user_service::CookieFactory>()
             .Append<user_service::Signup>()
             .Append<user_service::Login>()

@@ -8,9 +8,9 @@ pytest_plugins = [
     'pytest_userver.plugins.core',
     'pytest_userver.plugins.postgresql', 
     'pytest_userver.plugins.mongo',
-    'shared.fixtures.signup',
-    'shared.fixtures.login',
-    'shared.fixtures.auth_refresh',
+    'fixtures.signup',
+    'fixtures.login',
+    'fixtures.auth_refresh',
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent

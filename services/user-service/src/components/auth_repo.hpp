@@ -1,10 +1,11 @@
 #pragma once
 
+#include "services/dto/auth_dto.hpp"
+
 #include <userver/components/component_base.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/io/chrono.hpp>
 #include <userver/utils/expected.hpp>
-#include "services/dto/user_dto.hpp"
 
 namespace user_service {
 
@@ -33,11 +34,11 @@ enum class RefreshSessionRepoError {
     kDbError,
 };
 
-class UserRepo final : public userver::components::LoggableComponentBase {
+class AuthRepo final : public userver::components::LoggableComponentBase {
 public:
     static constexpr std::string_view kName = "user-repo";
 
-    UserRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
+    AuthRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> CreateUserWithSession(const CreateUserParams&) const;
 

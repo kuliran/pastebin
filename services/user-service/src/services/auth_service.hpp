@@ -1,7 +1,6 @@
 #pragma once
 
-#include "components/user_repo.hpp"
-#include "services/dto/user_dto.hpp"
+#include "components/auth_repo.hpp"
 #include "jwt/issuer.hpp"
 
 #include <userver/components/component_base.hpp>
@@ -10,11 +9,11 @@
 
 namespace user_service {
 
-class UserService final : public userver::components::LoggableComponentBase {
+class AuthService final : public userver::components::LoggableComponentBase {
 public:
     static constexpr std::string_view kName = "user-service";
 
-    UserService(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
+    AuthService(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::utils::expected<dto::CreateUserResult, dto::CreateUserError>
         CreateUser(const dto::UserCredentials& creds) const;
@@ -37,7 +36,7 @@ private:
     static constexpr std::string_view kPrivateKeyPath = "/run/secrets/private.pem";
     static constexpr std::chrono::seconds kRefreshTkLifetime = std::chrono::hours(24*7); // 1 week
 
-    UserRepo& user_repo_;
+    AuthRepo& user_repo_;
     jwt_wrapper::Issuer jwt_issuer_;
 };
 

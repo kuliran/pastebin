@@ -1,6 +1,6 @@
 #pragma once
 
-#include "services/user_service.hpp"
+#include "services/auth_service.hpp"
 #include "components/cookie_factory.hpp"
 
 #include <userver/components/component.hpp>
@@ -18,7 +18,7 @@ public:
         const override;
 
 private:
-    UserService& user_service_;
+    AuthService& user_service_;
     CookieFactory& cookie_factory_;
 };
 

@@ -1,4 +1,4 @@
-#include "services/user_service.hpp"
+#include "services/auth_service.hpp"
 #include "utils/crypto.hpp"
 
 #include <userver/utils/uuid4.hpp>
@@ -9,13 +9,13 @@ using namespace user_service::dto;
 
 namespace user_service {
 
-UserService::UserService(const components::ComponentConfig& config, const components::ComponentContext& component_context)
+AuthService::AuthService(const components::ComponentConfig& config, const components::ComponentContext& component_context)
     : components::LoggableComponentBase(config, component_context)
-    , user_repo_(component_context.FindComponent<UserRepo>(UserRepo::kName))
+    , user_repo_(component_context.FindComponent<AuthRepo>(AuthRepo::kName))
     , jwt_issuer_(ReadFile(kPrivateKeyPath))
 {}
 
-userver::utils::expected<CreateUserResult, CreateUserError> UserService::CreateUser(const UserCredentials& creds) const {
+userver::utils::expected<CreateUserResult, CreateUserError> AuthService::CreateUser(const UserCredentials& creds) const {
     if (creds.username.size() < 3 || creds.password.size() > 32) {
         return {CreateUserError::kInvalidUsername};
     }
@@ -53,7 +53,7 @@ userver::utils::expected<CreateUserResult, CreateUserError> UserService::CreateU
 }
 
 userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
-    UserService::CreateSession(const dto::UserCredentials& creds) const {
+    AuthService::CreateSession(const dto::UserCredentials& creds) const {
 
     const auto now = std::chrono::system_clock::now();
     const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
@@ -76,7 +76,7 @@ userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
 }
 
 userver::utils::expected<RefreshSessionResult, RefreshSessionError>
-    UserService::RefreshSession(const std::string& refresh_tk) const {
+    AuthService::RefreshSession(const std::string& refresh_tk) const {
     const auto now = std::chrono::system_clock::now();
     const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
 
