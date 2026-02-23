@@ -2,7 +2,7 @@ import pytest
 from dataclasses import dataclass
 from datetime import datetime
 from dateutil.parser import isoparse
-from fixtures.raw_get_paste import GetPasteResult
+from shared.fixtures.raw_get_paste import GetPasteResult
 
 @pytest.fixture
 async def api_get_paste(service_client) -> GetPasteResult:
