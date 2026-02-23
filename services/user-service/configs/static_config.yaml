@@ -62,16 +62,19 @@ components_manager:
             path: /api/v2/auth/signup
             method: POST
             task_processor: main-task-processor
+            max_request_size: 2048 # 2KB
 
         handler-login:
             path: /api/v2/auth/login
             method: POST
             task_processor: main-task-processor
+            max_request_size: 2048 # 2KB
 
         handler-refresh:
             path: /api/v2/auth/refresh
             method: POST
             task_processor: main-task-processor
+            max_request_size: 2048 # 2KB
 
         postgres-db-1:
             dbconnection: $pg-connection
