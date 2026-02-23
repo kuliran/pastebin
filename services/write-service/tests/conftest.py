@@ -13,7 +13,7 @@ pytest_plugins = [
     'fixtures.api_delete_paste',
     'shared.fixtures.raw_insert_paste',
     'shared.fixtures.raw_get_paste',
-    'shared.fixtures.mock_jwt',
+    'shared.fixtures.auth',
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent

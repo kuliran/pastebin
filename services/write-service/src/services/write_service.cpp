@@ -68,7 +68,8 @@ utils::expected<UploadPasteResult, UploadPasteError> WriteService::UploadPaste(s
     return {UploadPasteError::kIdCollisionRetryExceeded};
 }
 
-utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(const std::string_view& id, const std::string_view& delete_key) const {
+utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(
+    const std::string_view& id, const std::string_view& delete_key) const {
     if (id.empty() || id.size() > 128)
         return {DeletePasteError::kInvalidId};
     if (delete_key.empty() || delete_key.size() > 128)
@@ -89,11 +90,11 @@ utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(c
     background_tasks_.AsyncDetach(
         "blob_cleanup",
         [&blob_repo = blob_repo_, // passing repo by ref - it's a component with lifetime of the whole process
-            id = std::move(id)]() {
+            id = std::string(id)]() {
             try {
                 blob_repo.DeletePasteBlob(id);
-            } catch (const engine::TaskCancelledException&) {
-                LOG_WARNING() << "Blob cleanup cancelled during shutdown; paste_id=" << id;
+            } catch (const std::exception& e) {
+                LOG_WARNING() << "Blob cleanup error id=" << id;
             }
         }
     );
@@ -103,7 +104,7 @@ utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(c
         background_tasks_.AsyncDetach(
             "cache_purge",
             [cache_purger = cache_purger_,
-                id = std::move(id)]() {
+                id = std::string(id)]() {
                 try {
                     cache_purger->PurgePaste(id);
                 } catch (const engine::TaskCancelledException&) {

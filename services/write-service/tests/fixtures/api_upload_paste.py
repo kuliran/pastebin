@@ -1,6 +1,7 @@
 import pytest
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import shared.utils.auth as auth
 
 @dataclass
 class UploadResult:
@@ -12,8 +13,8 @@ class UploadResult:
     pg_size_bytes: int
 
 @pytest.fixture
-async def api_upload_paste(service_client, pg_cursor, mongo_collection) -> UploadResult:
-    async def _upload(paste_text: str, expires_in: str = None) -> UploadResult:
+async def api_upload_paste(pg_cursor, mongo_collection, auth_client) -> UploadResult:
+    async def _upload(paste_text: str, expires_in: str = None, *, client: auth.AuthClient = auth_client) -> UploadResult:
         # Preparation
         utf_text = paste_text.encode('utf-8')
         utf_len = len(utf_text)
@@ -23,7 +24,7 @@ async def api_upload_paste(service_client, pg_cursor, mongo_collection) -> Uploa
         request_json = {"text": paste_text}
         if expires_in is not None:
             request_json["expires_in"] = expires_in
-        response = await service_client.post(f'/api/v1/paste/', json=request_json)
+        response = await client.post(f'/api/v1/paste/', json=request_json)
         assert response.status == 200
         assert 'application/json' in response.headers['Content-Type']
 

@@ -19,9 +19,9 @@ async def test_max_size(api_upload_paste):
     paste_text = "a" * (1024*1024)
     await api_upload_paste(paste_text, '1_week')
 
-async def test_too_large(service_client):
+async def test_too_large(auth_client):
     paste_text = "a" * (1024*1024+1)
-    response = await service_client.post(f'/api/v1/paste/', json={"text": paste_text})
+    response = await auth_client.post(f'/api/v1/paste/', json={"text": paste_text})
     assert response.status == 413
 
 async def test_upload_and_get(upload_and_get_paste):
