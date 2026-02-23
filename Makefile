@@ -16,13 +16,13 @@ e2e-up:
 	HOST_UID=$(shell id -u) HOST_GID=$(shell id -g) docker compose up --build -d --wait
 
 # Run e2e tests
-.PHONY: e2e
-e2e:
+.PHONY: e2e-reuse
+e2e-reuse:
 	cd tests && venv/bin/pytest e2e/ -v
 
 # Reboot containers and run e2e
-.PHONY: e2e-fresh
-e2e-fresh: e2e-down e2e-up e2e
+.PHONY: e2e
+e2e: e2e-down e2e-up e2e-reuse
 
 # Stop and remove all containers
 .PHONY: e2e-down
