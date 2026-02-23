@@ -35,6 +35,8 @@ components_manager:
         cache-purger: # purges nginx cache on paste DELETE
             load-enabled: $cache-purge-enabled # disabled in non-e2e tests
         write-service:
+        jwt-verifier:
+            public-key-path: /run/secrets/public.pem
 
         testsuite-support: {}
 
@@ -60,12 +62,16 @@ components_manager:
             method: POST
             task_processor: main-task-processor
             max_request_size: 1150000 # ~1.1MB
+            auth:
+                type: bearer
 
         handler-delete-paste:
             path: /api/v1/delete/{id}
             method: DELETE
             task_processor: main-task-processor
             max_request_size: 1024 # 1KB
+            auth:
+                type: bearer
 
         postgres-db-1:
             dbconnection: $pg-connection

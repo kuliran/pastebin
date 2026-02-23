@@ -22,6 +22,9 @@ endif()
 
 userver_setup_environment()
 
+# Dependencies
+add_subdirectory(${SHARED_DIR}/libs/jwt deps/jwt)
+
 # Common sources
 include_directories(src)
 
@@ -41,6 +44,7 @@ target_link_libraries(
            userver::mongo
            userver::postgresql
            shared_models
+           jwt_verifier
 )
 
 

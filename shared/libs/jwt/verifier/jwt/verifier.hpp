@@ -6,8 +6,6 @@
 
 namespace jwt_wrapper {
 
-using JwtToken = std::string;
-
 struct VerifiedClaims {
     std::string user_id;
 };
@@ -21,7 +19,7 @@ public:
                 .with_issuer("user-service")
           ) {}
 
-    VerifiedClaims Verify(const JwtToken& token) const {
+    VerifiedClaims Verify(const std::string& token) const {
         try {
             auto decoded = jwt::decode(token);
             verifier_.verify(decoded);

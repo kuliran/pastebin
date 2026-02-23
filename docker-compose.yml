@@ -118,6 +118,7 @@ services:
       MONGO_CONNECTION: ${MONGO_CONNECTION}
     volumes:
       - ./services/write-service:/app:rw
+      - ./shared/keys/dev:/run/secrets:ro
     working_dir: /app
     command: bash -c "
       ./build-release/write_service --config configs/static_config.yaml"
