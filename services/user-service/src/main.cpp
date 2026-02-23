@@ -16,6 +16,7 @@
 #include "jwt/middleware_http.hpp"
 #include "services/user_service.hpp"
 #include "components/user_repo.hpp"
+#include "components/cookie_factory.hpp"
 #include "handlers/signup.hpp"
 #include "handlers/login.hpp"
 #include "handlers/refresh.hpp"
@@ -34,6 +35,7 @@ int main(int argc, char* argv[]) {
             .Append<jwt_wrapper::JwtMiddlewareFactory>()
             .Append<user_service::UserService>()
             .Append<user_service::UserRepo>()
+            .Append<user_service::CookieFactory>()
             .Append<user_service::Signup>()
             .Append<user_service::Login>()
             .Append<user_service::Refresh>()

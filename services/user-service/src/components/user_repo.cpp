@@ -142,7 +142,7 @@ userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> User
         auto new_refresh_tk = boost::uuids::to_string(std::move(new_refresh_tk_uuid));
         LOG_DEBUG() << "Refreshed token user_id=" << user_id
             << " refresh_tk=" << new_refresh_tk
-            << "old_refresh_tk=" << refresh_tk;
+            << " old_refresh_tk=" << refresh_tk;
 
         return RefreshSessionRepoResult{user_id, new_refresh_tk};
     } catch(const storages::postgres::Error& e) {

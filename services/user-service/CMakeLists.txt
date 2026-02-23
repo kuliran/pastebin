@@ -33,6 +33,7 @@ add_library(
     ${PROJECT_NAME}_objs OBJECT
     src/services/user_service.cpp
     src/components/user_repo.cpp
+    src/components/cookie_factory.cpp
     src/utils/crypto.cpp
     src/handlers/signup.cpp
     src/handlers/login.cpp

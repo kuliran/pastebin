@@ -38,6 +38,8 @@ components_manager:
                 - /api/v2/auth/signup
                 - /api/v2/auth/login
                 - /api/v2/auth/refresh
+        cookie-factory:
+            secure-refresh-tk: $secure-auth-cookie
 
         testsuite-support: {}
 

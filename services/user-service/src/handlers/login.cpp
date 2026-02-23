@@ -1,6 +1,5 @@
 #include "handlers/login.hpp"
 #include "services/dto/user_dto.hpp"
-#include "utils/cookie.hpp"
 
 #include <userver/formats/json.hpp>
 
@@ -14,6 +13,7 @@ Login::Login(
 )
     : HttpHandlerJsonBase(config, component_context)
     , user_service_(component_context.FindComponent<UserService>(UserService::kName))
+    , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 
 formats::json::Value Login::
@@ -50,7 +50,7 @@ formats::json::Value Login::
         }
     }
 
-    auto refresh_tk_cookie = cookie::MakeRefreshTkCookie(
+    auto refresh_tk_cookie = cookie_factory_.MakeRefreshTkCookie(
         std::move(result.value().refresh_tk),
         result.value().access_tk_expires_at
     );

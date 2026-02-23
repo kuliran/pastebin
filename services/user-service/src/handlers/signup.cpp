@@ -1,6 +1,5 @@
 #include "handlers/signup.hpp"
 #include "services/dto/user_dto.hpp"
-#include "utils/cookie.hpp"
 
 #include <userver/formats/json.hpp>
 
@@ -14,6 +13,7 @@ Signup::Signup(
 )
     : HttpHandlerJsonBase(config, component_context)
     , user_service_(component_context.FindComponent<UserService>(UserService::kName))
+    , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 
 formats::json::Value Signup::
@@ -33,9 +33,8 @@ formats::json::Value Signup::
     std::string password = request_json["password"].As<std::string>();
 
     auto span = tracing::Span::CurrentSpan().CreateChild("auth_signup_http");
-    LOG_DEBUG() << "sign up";
     
-    auto result = user_service_.CreateUser(UserCredentials{username, password});
+    auto result = user_service_.CreateUser(UserCredentials{username, std::move(password)});
     if (!result) {
         switch (result.error()) {
             case CreateUserError::kUsernameExists: {
@@ -50,10 +49,8 @@ formats::json::Value Signup::
             }
         }
     }
-
-    LOG_DEBUG() << "Sending tk: " << result.value().refresh_tk;
-
-    auto refresh_tk_cookie = cookie::MakeRefreshTkCookie(
+    
+    auto refresh_tk_cookie = cookie_factory_.MakeRefreshTkCookie(
         std::move(result.value().refresh_tk),
         result.value().access_tk_expires_at
     );

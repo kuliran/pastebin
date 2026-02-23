@@ -1,6 +1,7 @@
 #pragma once
 
 #include "services/user_service.hpp"
+#include "components/cookie_factory.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/server/handlers/http_handler_json_base.hpp>
@@ -18,6 +19,7 @@ public:
 
 private:
     UserService& user_service_;
+    CookieFactory& cookie_factory_;
 };
 
 }  // namespace user_service

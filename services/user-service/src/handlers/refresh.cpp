@@ -1,6 +1,5 @@
 #include "handlers/refresh.hpp"
 #include "services/dto/user_dto.hpp"
-#include "utils/cookie.hpp"
 
 #include <userver/formats/json.hpp>
 
@@ -14,6 +13,7 @@ Refresh::Refresh(
 )
     : HttpHandlerJsonBase(config, component_context)
     , user_service_(component_context.FindComponent<UserService>(UserService::kName))
+    , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 
 formats::json::Value Refresh::
@@ -22,14 +22,14 @@ formats::json::Value Refresh::
     using userver::server::http::HttpStatus;
     using namespace user_service::dto;
 
-    if (!request.HasCookie(cookie::kRefreshTkCookieName)) {
+    if (!request.HasCookie(CookieFactory::kRefreshTkCookieName)) {
         request.SetResponseStatus(HttpStatus::kUnauthorized);
         return {};
     }
 
     auto span = tracing::Span::CurrentSpan().CreateChild("auth_refresh_http");
 
-    auto refresh_tk = request.GetCookie(cookie::kRefreshTkCookieName);
+    auto refresh_tk = request.GetCookie(CookieFactory::kRefreshTkCookieName);
     auto result = user_service_.RefreshSession(refresh_tk);
     if (!result) {
         switch (result.error()) {
@@ -45,7 +45,7 @@ formats::json::Value Refresh::
         }
     }
 
-    auto refresh_tk_cookie = cookie::MakeRefreshTkCookie(
+    auto refresh_tk_cookie = cookie_factory_.MakeRefreshTkCookie(
         std::move(result.value().refresh_tk),
         result.value().access_tk_expires_at
     );
