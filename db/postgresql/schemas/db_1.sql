@@ -28,4 +28,4 @@ CREATE TABLE IF NOT EXISTS users.jwt_sessions (
     expires_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (user_id, refresh_tk)
 );
-CREATE UNIQUE INDEX uniq_jwt_sessions_refresh_tk ON users.jwt_sessions(refresh_tk);
+CREATE UNIQUE INDEX jwt_sessions_refresh_tk_uniq ON users.jwt_sessions(refresh_tk);
