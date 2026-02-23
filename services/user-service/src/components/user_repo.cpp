@@ -14,7 +14,7 @@ UserRepo::UserRepo(const components::ComponentConfig& config, const components::
     , pg_cluster_(component_context.FindComponent<components::Postgres>(kDefaultPgComponent).GetCluster())
 {}
 
-userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::CreateUserWithRefreshTk(const CreateUserParams& params) const {
+userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::CreateUserWithSession(const CreateUserParams& params) const {
     try {
         auto transaction = pg_cluster_->Begin(
             storages::postgres::ClusterHostType::kMaster,
@@ -61,13 +61,54 @@ userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::Cr
     }
 }
 
-userver::utils::expected<RefreshJwtRepoResult, RefreshJwtRepoError> UserRepo::RefreshJwt(
+userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> UserRepo::CreateSession(
+    const std::string_view& username, const std::string_view& pwd_hash,
+    std::chrono::system_clock::time_point created_at,
+    std::chrono::system_clock::time_point expires_at) const {
+    try {
+        LOG_DEBUG() << "Trying to create new session: " << username;
+
+        const auto result = pg_cluster_->Execute(
+            storages::postgres::ClusterHostType::kMaster,
+            "WITH user AS ( "
+            "   SELECT (id) "
+            "   FROM users.accounts "
+            "   WHERE username = $1 AND pwd_hash = $2 "
+            ") "
+            "INSERT INTO users.jwt_sessions "
+            "SELECT (id, $3, $4) "
+            "FROM user "
+            "RETURNING id, refresh_tk",
+            username, pwd_hash,
+            userver::storages::postgres::TimePointTz(created_at),
+            userver::storages::postgres::TimePointTz(expires_at)
+        );
+
+        if (result.RowsAffected() == 0) {
+            LOG_DEBUG() << "Credentials invalid username=" << username << " pwd_hash=" << pwd_hash;
+            return {RefreshSessionRepoError::kUnauthorized};
+        }
+
+        auto [user_id, new_refresh_tk_uuid] = result.AsSingleRow<std::tuple<std::string, boost::uuids::uuid>>(
+            storages::postgres::kRowTag
+        );
+        auto new_refresh_tk = boost::uuids::to_string(std::move(new_refresh_tk_uuid));
+        LOG_DEBUG() << "New session: user_id=" << user_id << " refresh_tk=" << new_refresh_tk;
+
+        return RefreshSessionRepoResult{user_id, new_refresh_tk};
+    } catch(const storages::postgres::Error& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {RefreshSessionRepoError::kDbError};
+    }
+}
+
+userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> UserRepo::RefreshSession(
     const std::string& refresh_tk, std::chrono::system_clock::time_point created_at,
     std::chrono::system_clock::time_point expires_at) const {
     try {
         boost::uuids::uuid cur_refresh_tk_uuid = boost::uuids::string_generator{}(refresh_tk);
 
-        LOG_DEBUG() << "Trying to refresh token: " << refresh_tk;
+        LOG_DEBUG() << "Trying to refresh session: " << refresh_tk;
 
         const auto result = pg_cluster_->Execute(
             storages::postgres::ClusterHostType::kMaster,
@@ -82,22 +123,24 @@ userver::utils::expected<RefreshJwtRepoResult, RefreshJwtRepoError> UserRepo::Re
 
         if (result.RowsAffected() == 0) {
             LOG_DEBUG() << "Refresh token invalid: " << refresh_tk;
-            return {RefreshJwtRepoError::kUnauthorized};
+            return {RefreshSessionRepoError::kUnauthorized};
         }
 
         auto [user_id, new_refresh_tk_uuid] = result.AsSingleRow<std::tuple<std::string, boost::uuids::uuid>>(
             storages::postgres::kRowTag
         );
         auto new_refresh_tk = boost::uuids::to_string(std::move(new_refresh_tk_uuid));
-        LOG_DEBUG() << "Refreshed token " << refresh_tk << "  ->  " << new_refresh_tk;
+        LOG_DEBUG() << "Refreshed token user_id=" << user_id
+            << " refresh_tk=" << new_refresh_tk
+            << "old_refresh_tk=" << refresh_tk;
 
-        return RefreshJwtRepoResult{user_id, new_refresh_tk};
+        return RefreshSessionRepoResult{user_id, new_refresh_tk};
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
-        return {RefreshJwtRepoError::kDbError};
+        return {RefreshSessionRepoError::kDbError};
     } catch(const std::exception& e) {
         LOG_INFO() << "exception: " << e.what();
-        return {RefreshJwtRepoError::kUnauthorized};
+        return {RefreshSessionRepoError::kUnauthorized};
     }
 }
 

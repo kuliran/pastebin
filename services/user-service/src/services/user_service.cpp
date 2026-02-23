@@ -16,21 +16,23 @@ UserService::UserService(const components::ComponentConfig& config, const compon
 {}
 
 userver::utils::expected<CreateUserResult, CreateUserError> UserService::CreateUser(const UserCredentials& creds) const {
-    // TODO
+    if (creds.username.size() < 3 || creds.password.size() > 32) {
+        return {CreateUserError::kInvalidUsername};
+    }
+    if (creds.password.size() < 6 || creds.password.size() > 48) {
+        return {CreateUserError::kInvalidPassword};
+    }
 
     auto user_id = utils::generators::GenerateUuid();
     auto pwd_hash = user_service::crypto::HashEncode(creds.password);
-    auto jwt = jwt_issuer_.Issue(jwt_wrapper::Issuer::Claims{user_id});
-    const auto refresh_tk_created_at = jwt.created_at;
-    const auto refresh_tk_expires_at = refresh_tk_created_at + kRefreshTkLifetime;
+    const auto now = std::chrono::system_clock::now();
+    const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
 
-    auto result = user_repo_.CreateUserWithRefreshTk(CreateUserParams{
+    auto result = user_repo_.CreateUserWithSession(CreateUserParams{
         .user_id = user_id,
         .username = creds.username,
         .pwd_hash = std::move(pwd_hash),
-        .jwt_access_tk_created_at = userver::storages::postgres::TimePointTz(jwt.created_at),
-        .jwt_access_tk_expires_at = userver::storages::postgres::TimePointTz(jwt.expires_at),
-        .jwt_refresh_tk_created_at = userver::storages::postgres::TimePointTz(refresh_tk_created_at),
+        .jwt_refresh_tk_created_at = userver::storages::postgres::TimePointTz(now),
         .jwt_refresh_tk_expires_at = userver::storages::postgres::TimePointTz(refresh_tk_expires_at),
     });
     if (!result) {
@@ -40,28 +42,57 @@ userver::utils::expected<CreateUserResult, CreateUserError> UserService::CreateU
         }
     }
 
+    auto jwt = jwt_issuer_.Issue(jwt_wrapper::Issuer::Claims{user_id}, now);
+
     return CreateUserResult{
         .user_id = user_id,
+        .access_tk = jwt.tk,
+        .refresh_tk = result.value().refresh_tk,
+        .access_tk_expires_at = now,
+    };
+}
+
+userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
+    UserService::CreateSession(const dto::UserCredentials& creds) const {
+
+    auto pwd_hash = user_service::crypto::HashEncode(creds.password);
+
+    const auto now = std::chrono::system_clock::now();
+    const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
+
+    auto result = user_repo_.CreateSession(creds.username, pwd_hash, now, refresh_tk_expires_at);
+    if (!result) {
+        switch (result.error()) {
+        case RefreshSessionRepoError::kUnauthorized: return {RefreshSessionError::kUnauthorized};
+        default: return {RefreshSessionError::kDbError};
+        }
+    }
+
+    auto jwt = jwt_issuer_.Issue(jwt_wrapper::Issuer::Claims{std::move(result.value().user_id)}, now);
+
+    return RefreshSessionResult{
         .access_tk = jwt.tk,
         .refresh_tk = result.value().refresh_tk,
         .access_tk_expires_at = jwt.expires_at,
     };
 }
 
-userver::utils::expected<RefreshJwtResult, RefreshJwtError> UserService::RefreshJwt(const std::string& refresh_tk) const {
-    const auto refresh_tk_created_at = std::chrono::system_clock::now();
-    const auto refresh_tk_expires_at = refresh_tk_created_at + kRefreshTkLifetime;
+userver::utils::expected<RefreshSessionResult, RefreshSessionError>
+    UserService::RefreshSession(const std::string& refresh_tk) const {
+    const auto now = std::chrono::system_clock::now();
+    const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
 
-    auto result = user_repo_.RefreshJwt(refresh_tk, refresh_tk_created_at, refresh_tk_expires_at);
+    auto result = user_repo_.RefreshSession(refresh_tk, now, refresh_tk_expires_at);
     if (!result) {
         switch (result.error()) {
-        case RefreshJwtRepoError::kUnauthorized: return {RefreshJwtError::kUnauthorized};
-        default: return {RefreshJwtError::kDbError};
+        case RefreshSessionRepoError::kUnauthorized: return {RefreshSessionError::kUnauthorized};
+        default: return {RefreshSessionError::kDbError};
         }
     }
 
-    auto jwt = jwt_issuer_.Issue(jwt_wrapper::Issuer::Claims{std::move(result.value().user_id)});
-    return RefreshJwtResult{
+    auto jwt = jwt_issuer_.Issue(jwt_wrapper::Issuer::Claims{std::move(result.value().user_id)}, now);
+
+    return RefreshSessionResult{
         .access_tk = jwt.tk,
         .refresh_tk = result.value().refresh_tk,
         .access_tk_expires_at = jwt.expires_at,

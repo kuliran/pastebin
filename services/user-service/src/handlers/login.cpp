@@ -1,4 +1,4 @@
-#include "handlers/refresh.hpp"
+#include "handlers/login.hpp"
 #include "services/dto/user_dto.hpp"
 #include "utils/cookie.hpp"
 
@@ -8,7 +8,7 @@ using namespace userver;
 
 namespace user_service {
 
-Refresh::Refresh(
+Login::Login(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context
 )
@@ -16,21 +16,25 @@ Refresh::Refresh(
     , user_service_(component_context.FindComponent<UserService>(UserService::kName))
 {}
 
-formats::json::Value Refresh::
-    HandleRequestJsonThrow(const HttpRequest& request, const Value&, RequestContext&)
+formats::json::Value Login::
+    HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext&)
         const {
     using userver::server::http::HttpStatus;
     using namespace user_service::dto;
 
-    if (!request.HasCookie(cookie::kRefreshTkCookieName)) {
-        request.SetResponseStatus(HttpStatus::kUnauthorized);
+    if (!request_json.IsObject()
+        || !request_json.HasMember("username") || !request_json["username"].IsString()
+        || !request_json.HasMember("password") || !request_json["password"].IsString()) {
+        request.SetResponseStatus(HttpStatus::kBadRequest);
         return {};
     }
 
-    auto span = tracing::Span::CurrentSpan().CreateChild("auth_refresh_http");
+    std::string username = request_json["username"].As<std::string>();
+    std::string password = request_json["password"].As<std::string>();
 
-    auto refresh_tk = request.GetCookie(cookie::kRefreshTkCookieName);
-    auto result = user_service_.RefreshSession(refresh_tk);
+    auto span = tracing::Span::CurrentSpan().CreateChild("auth_login_http");
+
+    auto result = user_service_.CreateSession(dto::UserCredentials{std::move(username), std::move(password)});
     if (!result) {
         switch (result.error()) {
             case RefreshSessionError::kUnauthorized: {
@@ -38,7 +42,7 @@ formats::json::Value Refresh::
                 return {};
             }
             default: {
-                LOG_DEBUG() << "RefreshSession err: " << static_cast<int>(result.error());
+                LOG_DEBUG() << "CreateSession err: " << static_cast<int>(result.error());
                 request.SetResponseStatus(HttpStatus::InternalServerError);
                 return {};
             }

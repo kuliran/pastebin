@@ -34,6 +34,7 @@ formats::json::Value Signup::
 
     auto span = tracing::Span::CurrentSpan().CreateChild("auth_signup_http");
     LOG_DEBUG() << "sign up";
+    
     auto result = user_service_.CreateUser(UserCredentials{username, password});
     if (!result) {
         switch (result.error()) {
@@ -43,13 +44,15 @@ formats::json::Value Signup::
                 return {};
             }
             default: {
+                LOG_DEBUG() << "CreateUser err: " << static_cast<int>(result.error());
                 request.SetResponseStatus(HttpStatus::InternalServerError);
                 return {};
             }
         }
     }
 
-    LOG_INFO() << "Sending tk: " << result.value().refresh_tk;
+    LOG_DEBUG() << "Sending tk: " << result.value().refresh_tk;
+
     auto refresh_tk_cookie = cookie::MakeRefreshTkCookie(
         std::move(result.value().refresh_tk),
         result.value().access_tk_expires_at

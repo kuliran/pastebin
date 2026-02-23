@@ -63,6 +63,11 @@ components_manager:
             method: POST
             task_processor: main-task-processor
 
+        handler-login:
+            path: /api/v2/auth/login
+            method: POST
+            task_processor: main-task-processor
+
         handler-refresh:
             path: /api/v2/auth/refresh
             method: POST

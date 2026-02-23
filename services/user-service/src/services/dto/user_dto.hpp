@@ -17,16 +17,17 @@ struct CreateUserResult {
 };
 enum class CreateUserError {
     kUsernameExists,
-    kInvalidPwd,
+    kInvalidUsername,
+    kInvalidPassword,
     kDbError,
 };
 
-struct RefreshJwtResult {
+struct RefreshSessionResult {
     std::string access_tk;
     std::string refresh_tk;
     std::chrono::system_clock::time_point access_tk_expires_at;
 };
-enum class RefreshJwtError {
+enum class RefreshSessionError {
     kUnauthorized,
     kDbError,
 };
