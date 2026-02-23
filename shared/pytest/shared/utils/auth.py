@@ -1,25 +1,45 @@
 from dataclasses import dataclass
+import pathlib
+from datetime import datetime, timezone, timedelta
+import jwt
+
+SHARED_DIR = pathlib.Path(__file__).parent.parent.parent.parent
+PRIVATE_KEY = pathlib.Path(str(SHARED_DIR / 'keys' / 'dev' / 'private.pem')).read_text()
+
+def make_test_token(user_id: str) -> str:
+    return jwt.encode(
+        {
+            'sub': user_id,
+            'iss': 'user-service',
+            'iat': datetime.now(timezone.utc),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+        },
+        PRIVATE_KEY,
+        algorithm='RS256'
+    )
 
 @dataclass
-class JwtTokens:
-    access_tk: str
-    refresh_tk: str
+class AuthClient:
+    _client: object
+    _access_tk: str
 
-def refresh_path():
-    return '/api/v2/auth/refresh'
+    async def get(self, path, **kwargs):
+        return await self._auth_request('GET', path, **kwargs)
 
-def validate_response_tokens(response) -> JwtTokens:
-    assert 'application/json' in response.headers['Content-Type']
+    async def post(self, path, **kwargs):
+        return await self._auth_request('POST', path, **kwargs)
 
-    json = response.json()
-    assert type(json['access_tk']) is str
+    async def delete(self, path, **kwargs):
+        return await self._auth_request('DELETE', path, **kwargs)
 
-    assert response.cookies['refresh_tk']
-    cookie = response.cookies.get('refresh_tk')
-    assert cookie['httponly']
-    assert cookie['path'] == refresh_path()
-
-    return JwtTokens(
-        access_tk=json['access_tk'],
-        refresh_tk=response.cookies['refresh_tk'].value
-    )
+    async def _auth_request(self, method, path, **kwargs):
+        headers = kwargs.pop('headers', {})
+        headers['Authorization'] = f'Bearer {self._access_tk}'
+        return await self._client.request(
+            method, path, headers=headers, **kwargs
+        )
+    
+    async def _unauth_request(self, method, path, **kwargs):
+        return await self._client.request(
+            method, path, **kwargs
+        )
