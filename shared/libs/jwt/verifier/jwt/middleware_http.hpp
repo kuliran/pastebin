@@ -17,7 +17,7 @@ public:
 
     void HandleRequest(userver::server::http::HttpRequest& request,
         userver::server::request::RequestContext& context) const override {
-        LOG_INFO() << "@@ middleware";
+        LOG_DEBUG() << "JWT middleware invoked";
         if (!skip_endpoints_.contains(request.GetRequestPath())) {
             const auto& header = request.GetHeader("Authorization");
             if (header.empty() || !header.starts_with("Bearer ")) {
@@ -34,7 +34,7 @@ public:
                 return;
             }
         }
-        LOG_INFO() << "@@ next";
+        LOG_DEBUG() << "JWT middleware passed";
         Next(request, context);
     }
 

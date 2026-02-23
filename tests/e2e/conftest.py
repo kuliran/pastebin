@@ -1,31 +1,19 @@
-import pytest
-import os
+"""
+e2e tests
+Run from project root dir with:
+    make e2e
+
+optionally, change the E2E_HOST (must match the one in nginx/conf.d/paste-service.conf) and E2E_URL:
+    E2E_URL=http://localhost  E2E_HOST=pastebin.io  make e2e
+"""
+
 import sys
 import pathlib
-import requests
-
-BASE_URL = os.getenv("E2E_BASE_URL", "http://localhost")
-SERVICE_HOST = os.getenv("E2E_HOST", "pastebin.io")
-TIMEOUT = 10  # seconds for each request
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'shared' / 'pytest'))
 
-class ApiSession:
-    def __init__(self, base_url: str, host: str):
-        self._base_url = base_url
-        self._session = requests.Session()
-        self._session.headers.update({'Host': host})
-
-    def get(self, path, **kwargs):
-        return self._session.get(f"{self._base_url}{path}", timeout=TIMEOUT, **kwargs)
-
-    def post(self, path, **kwargs):
-        return self._session.post(f"{self._base_url}{path}", timeout=TIMEOUT, **kwargs)
-
-    def delete(self, path, **kwargs):
-        return self._session.delete(f"{self._base_url}{path}", timeout=TIMEOUT, **kwargs)
-
-@pytest.fixture(scope="session")
-def api():
-    return ApiSession(BASE_URL, host=SERVICE_HOST)
+pytest_plugins = [
+    'utils.api',
+    'utils.auth',
+]
