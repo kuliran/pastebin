@@ -28,6 +28,7 @@ struct RefreshSessionRepoResult {
     std::string refresh_tk;
 };
 enum class RefreshSessionRepoError {
+    kNoUserExists,
     kUnauthorized,
     kDbError,
 };
@@ -41,8 +42,7 @@ public:
     userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> CreateUserWithSession(const CreateUserParams&) const;
 
     userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> CreateSession(
-        const std::string_view& username, const std::string_view& pwd_hash,
-        std::chrono::system_clock::time_point created_at,
+        const dto::UserCredentials& creds, std::chrono::system_clock::time_point created_at,
         std::chrono::system_clock::time_point expires_at) const;
 
     userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> RefreshSession(

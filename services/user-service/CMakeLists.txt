@@ -35,6 +35,7 @@ add_library(
     src/components/user_repo.cpp
     src/utils/crypto.cpp
     src/handlers/signup.cpp
+    src/handlers/login.cpp
     src/handlers/refresh.cpp
 )
 target_link_libraries(

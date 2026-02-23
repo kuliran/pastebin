@@ -28,6 +28,7 @@ struct RefreshSessionResult {
     std::chrono::system_clock::time_point access_tk_expires_at;
 };
 enum class RefreshSessionError {
+    kNoUserExists,
     kUnauthorized,
     kDbError,
 };

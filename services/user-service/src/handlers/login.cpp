@@ -37,6 +37,7 @@ formats::json::Value Login::
     auto result = user_service_.CreateSession(dto::UserCredentials{std::move(username), std::move(password)});
     if (!result) {
         switch (result.error()) {
+            case RefreshSessionError::kNoUserExists:
             case RefreshSessionError::kUnauthorized: {
                 request.SetResponseStatus(HttpStatus::kUnauthorized);
                 return {};

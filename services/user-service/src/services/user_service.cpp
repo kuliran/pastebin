@@ -55,12 +55,10 @@ userver::utils::expected<CreateUserResult, CreateUserError> UserService::CreateU
 userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
     UserService::CreateSession(const dto::UserCredentials& creds) const {
 
-    auto pwd_hash = user_service::crypto::HashEncode(creds.password);
-
     const auto now = std::chrono::system_clock::now();
     const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
 
-    auto result = user_repo_.CreateSession(creds.username, pwd_hash, now, refresh_tk_expires_at);
+    auto result = user_repo_.CreateSession(creds, now, refresh_tk_expires_at);
     if (!result) {
         switch (result.error()) {
         case RefreshSessionRepoError::kUnauthorized: return {RefreshSessionError::kUnauthorized};
@@ -85,6 +83,7 @@ userver::utils::expected<RefreshSessionResult, RefreshSessionError>
     auto result = user_repo_.RefreshSession(refresh_tk, now, refresh_tk_expires_at);
     if (!result) {
         switch (result.error()) {
+        case RefreshSessionRepoError::kNoUserExists: return {RefreshSessionError::kNoUserExists};
         case RefreshSessionRepoError::kUnauthorized: return {RefreshSessionError::kUnauthorized};
         default: return {RefreshSessionError::kDbError};
         }

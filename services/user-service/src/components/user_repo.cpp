@@ -1,4 +1,5 @@
 #include "components/user_repo.hpp"
+#include "utils/crypto.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/storages/postgres/component.hpp>
@@ -47,7 +48,8 @@ userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::Cr
         );
 
         auto refresh_tk = boost::uuids::to_string(jwt_result.AsSingleRow<boost::uuids::uuid>());
-        LOG_INFO() << "Created user user_id=" << params.user_id << " refresh_tk=" << refresh_tk;
+        LOG_INFO() << "Created user user_id=" << params.user_id << " refresh_tk=" << refresh_tk
+            << " pwd_hash=" << params.pwd_hash;
 
         transaction.Commit();
         return CreateUserRepoResult{refresh_tk};
@@ -62,39 +64,47 @@ userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> UserRepo::Cr
 }
 
 userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> UserRepo::CreateSession(
-    const std::string_view& username, const std::string_view& pwd_hash,
-    std::chrono::system_clock::time_point created_at,
+    const dto::UserCredentials& creds, std::chrono::system_clock::time_point created_at,
     std::chrono::system_clock::time_point expires_at) const {
     try {
-        LOG_DEBUG() << "Trying to create new session: " << username;
+        LOG_DEBUG() << "Trying to create new session: " << creds.username << " password=" << creds.password;
 
-        const auto result = pg_cluster_->Execute(
+        auto transaction = pg_cluster_->Begin(
             storages::postgres::ClusterHostType::kMaster,
-            "WITH user AS ( "
-            "   SELECT (id) "
-            "   FROM users.accounts "
-            "   WHERE username = $1 AND pwd_hash = $2 "
-            ") "
+            storages::postgres::TransactionOptions{}
+        );
+
+        const auto result = transaction.Execute(
+            "SELECT id, pwd_hash "
+            "FROM users.accounts "
+            "WHERE username = $1 ",
+            creds.username
+        );
+        if (result.IsEmpty()) {
+            LOG_DEBUG() << "Invalid username=" << creds.username;
+            return {RefreshSessionRepoError::kNoUserExists};
+        }
+
+        auto [user_id, pwd_hash] = result.AsSingleRow<std::tuple<std::string, std::string>>(storages::postgres::kRowTag);
+        if (!user_service::crypto::VerifyHash(creds.password, pwd_hash)) {
+            LOG_DEBUG() << "Invalid pwd: username=" << creds.username << " password=" << creds.password;
+            return {RefreshSessionRepoError::kUnauthorized};
+        }
+
+        const auto insert = transaction.Execute(
             "INSERT INTO users.jwt_sessions "
-            "SELECT (id, $3, $4) "
-            "FROM user "
-            "RETURNING id, refresh_tk",
-            username, pwd_hash,
+            "(user_id, created_at, expires_at) "
+            "VALUES ($1, $2, $3) "
+            "RETURNING refresh_tk",
+            user_id,
             userver::storages::postgres::TimePointTz(created_at),
             userver::storages::postgres::TimePointTz(expires_at)
         );
 
-        if (result.RowsAffected() == 0) {
-            LOG_DEBUG() << "Credentials invalid username=" << username << " pwd_hash=" << pwd_hash;
-            return {RefreshSessionRepoError::kUnauthorized};
-        }
-
-        auto [user_id, new_refresh_tk_uuid] = result.AsSingleRow<std::tuple<std::string, boost::uuids::uuid>>(
-            storages::postgres::kRowTag
-        );
-        auto new_refresh_tk = boost::uuids::to_string(std::move(new_refresh_tk_uuid));
+        auto new_refresh_tk = boost::uuids::to_string(insert.AsSingleRow<boost::uuids::uuid>());
         LOG_DEBUG() << "New session: user_id=" << user_id << " refresh_tk=" << new_refresh_tk;
 
+        transaction.Commit();
         return RefreshSessionRepoResult{user_id, new_refresh_tk};
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
