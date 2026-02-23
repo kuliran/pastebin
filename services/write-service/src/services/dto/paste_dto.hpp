@@ -7,11 +7,9 @@ namespace write_service::dto {
 
 struct UploadPasteResult {
     std::string id;
-    std::string delete_key;
 
     UploadPasteResult(PasteMetadata metadata)
-        : id(std::move(metadata.id))
-        , delete_key(std::move(metadata.delete_key)) {}
+        : id(std::move(metadata.id)) {}
 };
 enum class UploadPasteError {
     kEmptyText,
@@ -46,9 +44,8 @@ struct DeletePasteResult {
 };
 enum class DeletePasteError {
     kInvalidId,
-    kInvalidDeleteKey,
     kNotExists,
-    kSoftExpired,
+    kUnauthorized,
     kDbError,
 };
 

@@ -40,9 +40,8 @@ async def test_expired(api_get_paste_expect_none, raw_insert_paste, mongo_collec
 async def raw_insert_and_get(api_get_paste, raw_insert_paste):
     async def _insert_and_get(paste_text: str) -> RawInsertResult:
         paste_id = "abc123"
-        delete_key = "xyz"
 
-        raw_insert_res = await raw_insert_paste(paste_id, paste_text, delete_key)
+        raw_insert_res = await raw_insert_paste(paste_id, paste_text)
         get_response = await api_get_paste(paste_id)
         
         assert get_response.created_at_utc == raw_insert_res.pg_created_at_utc

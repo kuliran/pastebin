@@ -43,6 +43,7 @@ def test_upload_utf8(upload_paste, get_paste_raw):
     text = "Привет мир! 🌍 こんにちは"
     r = upload_paste(text)
     r2 = get_paste_raw(r.paste_id)
+    assert r2.status_code == 200
     assert r2.json()['text'] == text
 
 def test_expires_in_field(upload_paste, get_paste_raw):
@@ -74,22 +75,36 @@ def test_get_nonexistent(get_paste_raw):
 # ============================================
 def test_delete_existing(upload_paste, get_paste_raw, delete_paste_raw):
     r = upload_paste("to be deleted")
-    r2 = delete_paste_raw(r.paste_id, r.delete_key)
+    r2 = delete_paste_raw(r.paste_id)
     assert r2.status_code == 204
     time.sleep(0.5)
     r3 = get_paste_raw(r.paste_id)
     assert r3.status_code == 404
 
 def test_delete_nonexistent(delete_paste_raw):
-    r = delete_paste_raw("nonexistent_id_xyz", "abc")
+    r = delete_paste_raw("nonexistent_id_xyz")
     assert r.status_code == 204
 
 def test_double_delete(upload_paste, delete_paste_raw):
     r = upload_paste("double delete test")
-    r1 = delete_paste_raw(r.paste_id, r.delete_key)
+    r1 = delete_paste_raw(r.paste_id)
     assert r1.status_code == 204
-    r2 = delete_paste_raw(r.paste_id, r.delete_key)
+    r2 = delete_paste_raw(r.paste_id)
     assert r2.status_code == 204
+
+def test_unauthorized_delete_fails(upload_paste, delete_paste_raw, unauth_client):
+    r = upload_paste("Hello, world!")
+
+    diff = Context(client=unauth_client())
+    r2 = delete_paste_raw(r.paste_id, ctx=diff)
+    assert r2.status_code in (401, 403)
+
+def test_diff_user_delete_fails(upload_paste, delete_paste_raw, auth_client):
+    r = upload_paste("Hello, world!")
+    
+    diff = Context(client=auth_client("diff_user_delete_test", "diff_user_delete_test"))
+    r2 = delete_paste_raw(r.paste_id, ctx=diff)
+    assert r2.status_code in (401, 403)
 
 # ============================================
 def test_cache_hit_on_second_request(upload_paste, get_paste_raw):
@@ -108,8 +123,9 @@ def test_cache_invalidated_after_delete(upload_paste, get_paste_raw, delete_past
 
     get_paste_raw(r.paste_id)  # MISS
     r2 = get_paste_raw(r.paste_id)
+    assert r2.status_code == 200
     assert r2.headers.get("X-Cache-Status") == "HIT"
-    delete_paste_raw(r.paste_id, r.delete_key)
+    delete_paste_raw(r.paste_id)
     time.sleep(0.5)
     r3 = get_paste_raw(r.paste_id)
     assert r3.status_code == 404
@@ -127,11 +143,9 @@ def test_upload_rate_limit(upload_paste_raw):
 # ============================================
 # Helpers
 # ============================================
-
 @dataclass
 class UploadPasteResult:
     paste_id: str
-    delete_key: str
 
 @pytest.fixture(scope="session")
 def upload_paste(upload_paste_raw, ctx):
@@ -142,7 +156,6 @@ def upload_paste(upload_paste_raw, ctx):
         json = r.json()
         return UploadPasteResult(
             paste_id=json['id'],
-            delete_key=json['delete_key'],
         )
     return _upload_paste
 
@@ -165,7 +178,7 @@ def get_paste_raw(ctx):
 
 @pytest.fixture(scope="session")
 def delete_paste_raw(ctx):
-    def _delete_paste_raw(paste_id: str, delete_key: str, ctx: Context = ctx, **kwargs) -> requests.Response:
-        payload = {"delete_key": delete_key, **kwargs}
+    def _delete_paste_raw(paste_id: str, ctx: Context = ctx, **kwargs) -> requests.Response:
+        payload = {**kwargs}
         return ctx.client.delete(f'/api/v1/delete/{paste_id}', json=payload)
     return _delete_paste_raw

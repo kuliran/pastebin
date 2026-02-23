@@ -28,4 +28,11 @@ CREATE TABLE IF NOT EXISTS users.jwt_sessions (
     expires_at TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (user_id, refresh_tk)
 );
-CREATE UNIQUE INDEX jwt_sessions_refresh_tk_uniq ON users.jwt_sessions(refresh_tk);
+CREATE UNIQUE INDEX uniq_jwt_sessions_refresh_tk ON users.jwt_sessions(refresh_tk);
+
+-- V004__paste_metadata_with_users
+ALTER TABLE pastes.metadata
+    ADD COLUMN owner_user_id TEXT,
+    ALTER COLUMN delete_key DROP NOT NULL;
+
+-- no FK constraint

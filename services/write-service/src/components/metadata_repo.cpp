@@ -17,14 +17,14 @@ std::optional<UploadPasteMetadataError> MetadataRepo::UploadPasteMetadata(const 
         const auto result = pg_cluster_->Execute(
             storages::postgres::ClusterHostType::kMaster,
             "INSERT INTO pastes.metadata "
-            "(id, created_at, expires_at, size_bytes, delete_key) "
+            "(id, owner_user_id, created_at, expires_at, size_bytes) "
             "VALUES ($1, $2, $3, $4, $5) "
             "ON CONFLICT (id) DO NOTHING",
             metadata.id,
+            metadata.owner_user_id,
             metadata.created_at,
             metadata.expires_at,
-            metadata.size_bytes,
-            metadata.delete_key
+            metadata.size_bytes
         );
 
         if (result.RowsAffected() == 0) {
@@ -43,17 +43,33 @@ std::optional<UploadPasteMetadataError> MetadataRepo::UploadPasteMetadata(const 
 }
 
 std::optional<DeletePasteMetadataError>
-    MetadataRepo::DeletePasteMetadata(const std::string_view& id, const std::string_view& delete_key) const {
+    MetadataRepo::DeletePasteMetadata(const std::string_view& id, const std::string_view& user_id) const {
     try {
-        const auto result = pg_cluster_->Execute(
+        auto transaction = pg_cluster_->Begin(
             storages::postgres::ClusterHostType::kMaster,
-            "DELETE FROM pastes.metadata "
-            "WHERE id = $1 AND delete_key = $2 ",
-            id, delete_key
+            storages::postgres::TransactionOptions{}
         );
 
-        if (result.RowsAffected() == 0)
+        auto result = transaction.Execute(
+            "SELECT owner_user_id "
+            "FROM pastes.metadata "
+            "WHERE id = $1",
+            id
+        );
+        if (result.IsEmpty())
             return {DeletePasteMetadataError::kNotExists};
+
+        auto owner_user_id = result.AsSingleRow<std::string>();
+        if (user_id != owner_user_id)
+            return {DeletePasteMetadataError::kUnauthorized};
+
+        transaction.Execute(
+            "DELETE FROM pastes.metadata "
+            "WHERE id = $1",
+            id
+        );
+        transaction.Commit();
+        return std::nullopt;
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
         return {DeletePasteMetadataError::kDbError};

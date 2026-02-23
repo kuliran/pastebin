@@ -17,7 +17,8 @@ WriteService::WriteService(const components::ComponentConfig& config, const comp
     , cache_purger_(component_context.FindComponentOptional<CachePurger>(CachePurger::kName))
 {}
 
-utils::expected<UploadPasteResult, UploadPasteError> WriteService::UploadPaste(std::string text, UploadPasteLifetime lifetime) const {
+utils::expected<UploadPasteResult, UploadPasteError> WriteService::UploadPaste(std::string text,
+    std::string user_id, UploadPasteLifetime lifetime) const {
     if (text.empty())
         return {UploadPasteError::kEmptyText};
     if (text.size() > kMaxBlobSizeBytes)
@@ -27,16 +28,15 @@ utils::expected<UploadPasteResult, UploadPasteError> WriteService::UploadPaste(s
     if (!expires_in)
         return {UploadPasteError::kInvalidLifetimeParam};
 
-    std::string delete_key = utils::generators::GenerateUuid();
     auto now = std::chrono::system_clock::now();
     auto expires_at = now + *expires_in;
 
     PasteBlob blob{{}, std::move(text), expires_at};
     PasteMetadata metadata{
         .id = {}, // is set below
+        .owner_user_id = std::move(user_id),
         .created_at = storages::postgres::TimePointTz(now),
         .expires_at = storages::postgres::TimePointTz(expires_at),
-        .delete_key = std::move(delete_key),
         .size_bytes = static_cast<int>(blob.text.size()),
     };
 
@@ -68,21 +68,17 @@ utils::expected<UploadPasteResult, UploadPasteError> WriteService::UploadPaste(s
     return {UploadPasteError::kIdCollisionRetryExceeded};
 }
 
-utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(
-    const std::string_view& id, const std::string_view& delete_key) const {
+utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(const std::string_view& id,
+    const std::string_view& user_id) const {
     if (id.empty() || id.size() > 128)
         return {DeletePasteError::kInvalidId};
-    if (delete_key.empty() || delete_key.size() > 128)
-        return {DeletePasteError::kInvalidDeleteKey};
 
-    auto metadata_err = metadata_repo_.DeletePasteMetadata(id, delete_key);
+    auto metadata_err = metadata_repo_.DeletePasteMetadata(id, user_id);
     if (metadata_err) {
         switch (*metadata_err) {
-            case DeletePasteMetadataError::kNotExists:
-                return {DeletePasteError::kNotExists};
-            default: {
-                return {DeletePasteError::kDbError};
-            }
+            case DeletePasteMetadataError::kUnauthorized: return {DeletePasteError::kUnauthorized};
+            case DeletePasteMetadataError::kNotExists: return {DeletePasteError::kNotExists};
+            default: return {DeletePasteError::kDbError};
         }
     }
 

@@ -19,9 +19,11 @@ public:
 
     userver::utils::expected<dto::UploadPasteResult, dto::UploadPasteError> UploadPaste(
             std::string text, // copying text because it will be a part of the result
+            std::string user_id,
             dto::UploadPasteLifetime lifetime
         ) const;
-    userver::utils::expected<dto::DeletePasteResult, dto::DeletePasteError> DeletePaste(const std::string_view& id, const std::string_view& delete_key) const;
+    userver::utils::expected<dto::DeletePasteResult, dto::DeletePasteError> DeletePaste(const std::string_view& id,
+        const std::string_view& user_id) const;
 private:
     static constexpr int kIdCollisionRetries = 2;
     static constexpr int kMaxBlobSizeBytes = 1024*1024; // 1MB

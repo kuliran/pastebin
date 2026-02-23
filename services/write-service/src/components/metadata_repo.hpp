@@ -21,6 +21,7 @@ enum class UploadPasteMetadataError {
 
 enum class DeletePasteMetadataError {
     kNotExists,
+    kUnauthorized,
     kDbError,
 };
 
@@ -34,7 +35,7 @@ public:
         UploadPasteMetadata(const PasteMetadata& metadata) const;
 
     std::optional<DeletePasteMetadataError>
-        DeletePasteMetadata(const std::string_view& id, const std::string_view& delete_key) const;
+        DeletePasteMetadata(const std::string_view& id, const std::string_view& user_id) const;
 private:
     static constexpr std::string_view kDefaultPgComponent = "postgres-db-1";
 

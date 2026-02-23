@@ -11,6 +11,7 @@ pytest_plugins = [
     'pytest_userver.plugins.mongo',
     'fixtures.api_get_paste',
     'shared.fixtures.raw_insert_paste',
+    'shared.fixtures.auth',
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent

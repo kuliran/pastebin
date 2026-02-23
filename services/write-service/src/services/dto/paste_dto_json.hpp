@@ -12,7 +12,6 @@ inline userver::formats::json::Value Serialize(
 ) {
     userver::formats::json::ValueBuilder b;
     b["id"] = p.id;
-    b["delete_key"] = p.delete_key;
     return b.ExtractValue();
 }
 

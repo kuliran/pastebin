@@ -5,8 +5,8 @@
 
 struct PasteMetadata {
     std::string id;
+    std::string owner_user_id;
     userver::storages::postgres::TimePointTz created_at;
     userver::storages::postgres::TimePointTz expires_at;
-    std::string delete_key;
     int size_bytes;
 };

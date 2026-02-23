@@ -12,7 +12,7 @@ def make_test_token(user_id: str) -> str:
             'sub': user_id,
             'iss': 'user-service',
             'iat': datetime.now(timezone.utc),
-            'exp': datetime.now(timezone.utc) + timedelta(hours=1),
+            'exp': datetime.now(timezone.utc) + timedelta(hours=24),
         },
         PRIVATE_KEY,
         algorithm='RS256'
@@ -22,6 +22,7 @@ def make_test_token(user_id: str) -> str:
 class AuthClient:
     _client: object
     _access_tk: str
+    _user_id: str
 
     async def get(self, path, **kwargs):
         return await self._auth_request('GET', path, **kwargs)

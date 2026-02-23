@@ -15,28 +15,27 @@ DeletePaste::DeletePaste(
 {}
 
 formats::json::Value DeletePaste::
-    HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext&)
+    HandleRequestJsonThrow(const HttpRequest& request, const Value&, RequestContext& ctx)
         const {
     using userver::server::http::HttpStatus;
     using namespace write_service::dto;
 
-    if (!request_json.IsObject() || !request_json.HasMember("delete_key")
-        || !request_json["delete_key"].IsString()) {
-        request.SetResponseStatus(HttpStatus::kBadRequest);
-        return {};
-    }
     const auto& id = request.GetPathArg("id");
-    std::string delete_key = request_json["delete_key"].As<std::string>();
-    
+    const std::string& user_id = ctx.GetData<std::string>("user_id");
+
     auto span = tracing::Span::CurrentSpan().CreateChild("delete_paste_http");
     span.AddTag("paste_id", std::string(id));
+    span.AddTag("user_id", user_id);
 
-    auto result = write_service_.DeletePaste(id, delete_key);
+    auto result = write_service_.DeletePaste(id, user_id);
     if (!result) {
         switch (result.error()) {
-            case DeletePasteError::kInvalidId:
-            case DeletePasteError::kInvalidDeleteKey: {
+            case DeletePasteError::kInvalidId: {
                 request.SetResponseStatus(HttpStatus::kBadRequest);
+                return {};
+            }
+            case DeletePasteError::kUnauthorized: {
+                request.SetResponseStatus(HttpStatus::kForbidden);
                 return {};
             }
             case DeletePasteError::kNotExists:

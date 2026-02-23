@@ -18,7 +18,7 @@ utils::expected<PasteMetadata, GetPasteMetadataError>
     try {
         const auto result = pg_cluster_->Execute(
             storages::postgres::ClusterHostType::kSlave,
-            "SELECT * "
+            "SELECT id, owner_user_id, created_at, expires_at, size_bytes "
             "FROM pastes.metadata "
             "WHERE id = $1",
             id

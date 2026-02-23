@@ -22,7 +22,7 @@ UploadPaste::UploadPaste(
 {}
 
 formats::json::Value UploadPaste::
-    HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext&)
+    HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext& ctx)
         const {
     using userver::server::http::HttpStatus;
 
@@ -31,9 +31,8 @@ formats::json::Value UploadPaste::
         request.SetResponseStatus(HttpStatus::kBadRequest);
         return {};
     }
-    std::string text = request_json["text"].As<std::string>();
-    dto::UploadPasteLifetime lifetime;
 
+    dto::UploadPasteLifetime lifetime;
     auto expires_in = request_json["expires_in"].As<std::optional<std::string>>();
     if (!expires_in) {
         lifetime = dto::UploadPasteLifetime::k1Week;
@@ -46,11 +45,16 @@ formats::json::Value UploadPaste::
         lifetime = it->second;
     }
 
-    auto span = tracing::Span::CurrentSpan().CreateChild("upload_paste_http");
+    const std::string& user_id = ctx.GetData<std::string>("user_id");
+    std::string text = request_json["text"].As<std::string>();
 
-    auto result = write_service_.UploadPaste(std::move(text), lifetime);
+    auto span = tracing::Span::CurrentSpan().CreateChild("upload_paste_http");
+    span.AddTag("user_id", user_id);
+
+    auto result = write_service_.UploadPaste(std::move(text), user_id, lifetime);
     if (!result) {
         switch (result.error()) {
+            case dto::UploadPasteError::kInvalidLifetimeParam:
             case dto::UploadPasteError::kEmptyText: {
                 request.SetResponseStatus(HttpStatus::kBadRequest);
                 return {};

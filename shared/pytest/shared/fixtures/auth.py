@@ -11,5 +11,6 @@ def new_auth_client(service_client):
         return auth.AuthClient(
             _client=service_client,
             _access_tk=auth.make_test_token(user_id),
+            _user_id=user_id,
         )
     return _new_auth_client
