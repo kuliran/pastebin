@@ -1,13 +1,13 @@
 import pytest
 from dataclasses import dataclass
-from utils.auth import AuthClient, get_cookie
+from utils.auth import Client, get_cookie
 
 USERNAME = 'test_auth'
 PASSWORD = 'test_auth'
 
 @dataclass
 class Context:
-    client: AuthClient
+    client: Client
 
 @pytest.fixture(scope='session')
 def ctx(auth_client) -> Context:

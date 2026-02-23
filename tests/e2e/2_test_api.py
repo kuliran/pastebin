@@ -4,14 +4,14 @@ import pytest
 import requests
 from dateutil.parser import isoparse
 from datetime import datetime, timezone
-from utils.auth import AuthClient
+from utils.auth import Client
 
 USERNAME = 'test_api'
 PASSWORD = 'test_api'
 
 @dataclass
 class Context:
-    client: AuthClient
+    client: Client
 
 @pytest.fixture(scope='session')
 def ctx(auth_client) -> Context:
@@ -55,6 +55,16 @@ def test_expires_in_field(upload_paste, get_paste_raw):
     expires_at = isoparse(r2.json()['expires_at'])
     assert (expires_at - created_at).total_seconds() == 60 * 60 * 24 * 30 * 3
     assert (created_at - now).total_seconds() <= 2
+
+def test_upload_too_large_fails(upload_paste_raw):
+    content = "x" * (1024 * 1024 + 1)
+    r = upload_paste_raw(content)
+    assert r.status_code == 413
+
+def test_unauthorized_upload_fails(upload_paste_raw, unauth_client):
+    ctx = Context(client=unauth_client())
+    r = upload_paste_raw("Hello, world!", ctx=ctx)
+    assert r.status_code in (401, 403)
 
 # ============================================
 def test_get_nonexistent(get_paste_raw):

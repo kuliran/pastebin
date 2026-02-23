@@ -10,7 +10,7 @@ def get_cookie(response, name: str) -> str:
     return match.group(1)
 
 
-class AuthClient:
+class Client:
     def __init__(self, api: ApiSession, access_tk: str, refresh_tk: str):
         self._api = api
         self._access_tk = access_tk
@@ -30,12 +30,12 @@ class AuthClient:
 
 @pytest.fixture(scope='session')
 def auth_client(api, endpoints):
-    def _auth_client(username, password) -> AuthClient:
+    def _auth_client(username, password) -> Client:
         r = api.post(endpoints['auth_signup'], json={'username': username, 'password': password})
         assert r.status_code == 201
 
         json = r.json()
-        return AuthClient(
+        return Client(
             api=api,
             access_tk=json['access_tk'],
             refresh_tk=get_cookie(r, 'refresh_tk'),
@@ -43,13 +43,23 @@ def auth_client(api, endpoints):
     return _auth_client
 
 @pytest.fixture(scope='session')
+def unauth_client(api):
+    def _auth_client() -> Client:
+        return Client(
+            api=api,
+            access_tk='no_tk',
+            refresh_tk='no_tk',
+        )
+    return _auth_client
+
+@pytest.fixture(scope='session')
 def login(api, login_raw):
-    def _login(username, password) -> AuthClient:
+    def _login(username, password) -> Client:
         r = login_raw(username, password)
         assert r.status_code == 200
 
         json = r.json()
-        return AuthClient(
+        return Client(
             api=api,
             access_tk=json['access_tk'],
             refresh_tk=r.cookies['refresh_tk'],
