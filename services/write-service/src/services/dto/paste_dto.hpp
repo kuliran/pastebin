@@ -1,19 +1,16 @@
 #pragma once
 
-#include "models/paste_metadata.hpp"
-#include "models/paste_blob.hpp"
+#include <string>
+#include <chrono>
+#include <optional>
 
 namespace write_service::dto {
 
-struct UploadPasteResult {
+struct CreateUploadPresignedUrlResult {
+    std::string presigned_url;
     std::string id;
-
-    UploadPasteResult(PasteMetadata metadata)
-        : id(std::move(metadata.id)) {}
 };
-enum class UploadPasteError {
-    kEmptyText,
-    kTextTooLarge,
+enum class CreateUploadPresignedUrlError {
     kInvalidLifetimeParam,
     kIdCollisionRetryExceeded,
     kDbError,
