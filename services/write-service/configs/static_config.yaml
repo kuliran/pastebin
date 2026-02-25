@@ -31,6 +31,13 @@ components_manager:
                     statement_timeout_ms: 500
 
         blob-repo:
+            endpoint: $s3-endpoint
+            bucket: pastes
+            access_key: $s3-access-key
+            secret_key: $s3-secret-key
+            region: us-east-1  # doesn't matter for MinIO but is mandatory
+            # s3-client: s3-client
+        aws-sdk:
         metadata-repo:
         cache-purger: # purges nginx cache on paste DELETE
             load-enabled: $cache-purge-enabled # disabled in non-e2e tests
@@ -57,11 +64,19 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
-        handler-upload-paste:
-            path: /api/v1/paste
+        handler-upload-create-url:
+            path: /api/v2/paste/create-url
             method: POST
             task_processor: main-task-processor
-            max_request_size: 1150000 # ~1.1MB
+            max_request_size: 1024 # 1KB
+            auth:
+                type: bearer
+
+        handler-upload-submit:
+            path: /api/v2/paste/submit
+            method: POST
+            task_processor: main-task-processor
+            max_request_size: 1024 # 1KB
             auth:
                 type: bearer
 
@@ -80,5 +95,8 @@ components_manager:
             sync-start: true
             connlimit_mode: manual
 
-        mongo-db-1:
-            dbconnection: $mongo-connection
+        # s3-client:
+        #     endpoint: $s3-endpoint
+        #     access-key: $s3-access-key
+        #     secret-key: $s3-secret-key
+        #     region: us-east-1  # doesn't matter for MinIO but is mandatory
