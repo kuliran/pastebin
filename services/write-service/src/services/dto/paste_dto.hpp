@@ -8,10 +8,10 @@ namespace write_service::dto {
 
 struct CreateUploadPresignedUrlResult {
     std::string presigned_url;
-    std::string id;
 };
 enum class CreateUploadPresignedUrlError {
     kInvalidLifetimeParam,
+    kUserRateLimitExceeded,
     kIdCollisionRetryExceeded,
     kDbError,
 };
@@ -35,6 +35,16 @@ inline std::optional<std::chrono::seconds> ToDuration(UploadPasteLifetime lifeti
     return std::nullopt;
 }
 
+struct SubmitUploadResult {
+    SubmitUploadResult() = default;
+};
+enum class SubmitUploadError {
+    kConflict,
+    kBlobNotExists,
+    kBlobTooLarge,
+    kBadBlobContent,
+    kDbError,
+};
 
 struct DeletePasteResult {
     DeletePasteResult() = default;
@@ -43,6 +53,7 @@ enum class DeletePasteError {
     kInvalidId,
     kNotExists,
     kUnauthorized,
+    kAlreadySoftDeleted,
     kDbError,
 };
 

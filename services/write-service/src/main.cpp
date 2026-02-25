@@ -9,17 +9,19 @@
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/storages/secdist/provider_component.hpp>
-#include <userver/storages/mongo/component.hpp>    
 #include <userver/storages/postgres/component.hpp> 
 #include <userver/utils/daemon_run.hpp>
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
 
 #include "jwt/auth_checker_http.hpp"
 #include "services/write_service.hpp"
+#include "components/aws_sdk_component.hpp"
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
+#include "components/cleanup_job.hpp"
 #include "components/cache_purger.hpp"
-#include "handlers/upload_paste.hpp"
+#include "handlers/upload_create_url.hpp"
+#include "handlers/upload_submit.hpp"
 #include "handlers/delete_paste.hpp"
 
 int main(int argc, char* argv[]) {
@@ -33,14 +35,16 @@ int main(int argc, char* argv[]) {
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
             .Append<userver::components::Postgres>("postgres-db-1")
-            .Append<userver::components::Mongo>("mongo-db-1")
             .Append<jwt_wrapper::JwtVerifierComponent>()
 
+            .Append<write_service::AwsSdkComponent>()
             .Append<write_service::WriteService>()
             .Append<write_service::MetadataRepo>()
             .Append<write_service::CachePurger>()
             .Append<write_service::BlobRepo>()
-            .Append<write_service::UploadPaste>()
+            .Append<write_service::CleanupJob>()
+            .Append<write_service::UploadCreateUrl>()
+            .Append<write_service::UploadSubmit>()
             .Append<write_service::DeletePaste>()
         ;
 

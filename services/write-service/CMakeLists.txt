@@ -5,15 +5,18 @@ set (SHARED_DIR ${CMAKE_SOURCE_DIR}/../../shared
     CACHE PATH "Path to shared directory")
 add_subdirectory(${SHARED_DIR}/libs/models shared_models)
 
+# removing sanitizers due to AWS not being built with them
+set(USERVER_SANITIZE "none" CACHE STRING "" FORCE)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DownloadUserver)
 
 find_package(
     userver
     COMPONENTS core
-               mongo
+               s3api
                postgresql
-    QUIET
+    REQUIRED
 )
 if(NOT userver_FOUND)
     # Tries TRY_DIR first, falls back to downloading userver from GitHub using CPM.
@@ -25,6 +28,12 @@ userver_setup_environment()
 # Dependencies
 add_subdirectory(${SHARED_DIR}/libs/jwt deps/jwt)
 
+find_package(AWSSDK CONFIG REQUIRED COMPONENTS s3)
+
+# find_package(aws-cpp-sdk-core REQUIRED)
+    # target_include_directories(main PRIVATE aws-cpp-sdk-core)
+    # target_link_libraries(main PRIVATE aws-cpp-sdk-core)
+
 # Common sources
 include_directories(src)
 
@@ -33,20 +42,27 @@ add_library(
     src/services/write_service.cpp
     src/components/metadata_repo.cpp
     src/components/blob_repo.cpp
+    src/components/aws_sdk_component.cpp
     src/components/cache_purger.cpp
-    src/handlers/upload_paste.cpp
+    src/components/cleanup_job.cpp
+    src/handlers/upload_create_url.cpp
+    src/handlers/upload_submit.cpp
     src/handlers/delete_paste.cpp
     src/utils/id_gen.cpp
 )
 target_link_libraries(
     ${PROJECT_NAME}_objs
     PUBLIC userver::core
-           userver::mongo
+           userver::s3api
            userver::postgresql
            shared_models
            jwt_verifier
+           ${AWSSDK_LIBRARIES}
 )
-
+target_include_directories(
+    ${PROJECT_NAME}_objs
+    PUBLIC ${AWSSDK_INCLUDE_DIRS}
+)
 
 # The Service
 add_executable(${PROJECT_NAME} src/main.cpp)

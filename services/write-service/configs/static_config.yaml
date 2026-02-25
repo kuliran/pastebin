@@ -39,8 +39,15 @@ components_manager:
             # s3-client: s3-client
         aws-sdk:
         metadata-repo:
+            upload_rate_limit_window_duration_s: 7200 # 2 hours
+            upload_rate_limit_submit_max: 5
+            upload_rate_limit_create_url_max: 10
         cache-purger: # purges nginx cache on paste DELETE
             load-enabled: $cache-purge-enabled # disabled in non-e2e tests
+        cleanup-job:
+            interval_s: 120
+            batch_size_expired: 40
+            batch_size_deleted: 40
         write-service:
         jwt-verifier:
             public-key-path: /run/secrets/public.pem
@@ -81,7 +88,7 @@ components_manager:
                 type: bearer
 
         handler-delete-paste:
-            path: /api/v1/delete/{id}
+            path: /api/v2/paste/{id}
             method: DELETE
             task_processor: main-task-processor
             max_request_size: 1024 # 1KB

@@ -1,4 +1,4 @@
-#include "handlers/upload_paste.hpp"
+#include "handlers/upload_create_url.hpp"
 #include "services/dto/paste_dto_json.hpp" // IWYU pragma: keep; ADL json Serialize provider
 
 using namespace userver;
@@ -13,7 +13,7 @@ inline static const std::unordered_map<std::string_view, dto::UploadPasteLifetim
     {"3_month", dto::UploadPasteLifetime::k3Months},
 };
 
-UploadPaste::UploadPaste(
+UploadCreateUrl::UploadCreateUrl(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context
 )
@@ -21,12 +21,12 @@ UploadPaste::UploadPaste(
     , write_service_(component_context.FindComponent<WriteService>(WriteService::kName))
 {}
 
-formats::json::Value UploadPaste::
+formats::json::Value UploadCreateUrl::
     HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext& ctx)
         const {
     using userver::server::http::HttpStatus;
 
-    if (!request_json.IsObject() || !request_json.HasMember("text") || !request_json["text"].IsString()
+    if (!request_json.IsObject()
         || (request_json.HasMember("expires_in") && !request_json["expires_in"].IsString())) {
         request.SetResponseStatus(HttpStatus::kBadRequest);
         return {};
@@ -46,24 +46,20 @@ formats::json::Value UploadPaste::
     }
 
     const std::string& user_id = ctx.GetData<std::string>("user_id");
-    std::string text = request_json["text"].As<std::string>();
 
     auto span = tracing::Span::CurrentSpan().CreateChild("upload_paste_http");
     span.AddTag("user_id", user_id);
 
-    auto result = write_service_.UploadPaste(std::move(text), user_id, lifetime);
+    auto result = write_service_.CreateUploadPresignedUrl(user_id, lifetime);
     if (!result) {
         switch (result.error()) {
-            case dto::UploadPasteError::kInvalidLifetimeParam:
-            case dto::UploadPasteError::kEmptyText: {
+            case dto::CreateUploadPresignedUrlError::kInvalidLifetimeParam: {
                 request.SetResponseStatus(HttpStatus::kBadRequest);
                 return {};
             }
-            case dto::UploadPasteError::kTextTooLarge: {
-                // size limit is also set in static_config.yaml to be slightly more than here
-                // to permit json payload (which adds a bit of overhead)
-                request.SetResponseStatus(HttpStatus::kPayloadTooLarge);
-                return {};
+            case dto::CreateUploadPresignedUrlError::kUserRateLimitExceeded: {
+                request.SetResponseStatus(HttpStatus::kTooManyRequests);
+                return formats::json::MakeObject("msg", "paste upload rate limit exceeded");
             }
             default: {
                 request.SetResponseStatus(HttpStatus::kInternalServerError);
@@ -72,6 +68,7 @@ formats::json::Value UploadPaste::
         }
     }
 
+    request.SetResponseStatus(HttpStatus::kCreated);
     return formats::json::ValueBuilder(std::move(result.value())).ExtractValue();
 }
 

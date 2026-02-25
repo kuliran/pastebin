@@ -39,6 +39,7 @@ formats::json::Value DeletePaste::
                 return {};
             }
             case DeletePasteError::kNotExists:
+            case DeletePasteError::kAlreadySoftDeleted:
                 break;
             default: {
                 request.SetResponseStatus(HttpStatus::kInternalServerError);

@@ -7,11 +7,11 @@
 
 namespace write_service {
 
-class UploadPaste final : public userver::server::handlers::HttpHandlerJsonBase {
+class UploadCreateUrl final : public userver::server::handlers::HttpHandlerJsonBase {
 public:
-    static constexpr std::string_view kName = "handler-upload-paste";
+    static constexpr std::string_view kName = "handler-upload-create-url";
 
-    UploadPaste(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
+    UploadCreateUrl(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::formats::json::Value HandleRequestJsonThrow(const HttpRequest&, const Value&, RequestContext&)
         const override;

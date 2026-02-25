@@ -1,3 +1,17 @@
+/*
+When a user wants to upload:
+    - User requests /create-url    
+        - Generate a random paste_id (cheap)
+        - Check user's rate limit, increment rate count, create a new paste with 'pending' status in the metadata DB
+        - CreatePresignedPut url, return the url to user
+    - User uploads directly to S3
+    - User requests /submit
+        - Get the latest VersionId from S3
+        - Perform trivial validations (must be quick, otherwise we'd have to InvalidatePresignedUrl before to prevent TOCTOU)
+        - Save VersionId and status 'submitted' to the metadata DB
+        - Respond OK to user
+*/
+
 #include "services/write_service.hpp"
 #include "utils/id_gen.hpp"
 
@@ -17,55 +31,100 @@ WriteService::WriteService(const components::ComponentConfig& config, const comp
     , cache_purger_(component_context.FindComponentOptional<CachePurger>(CachePurger::kName))
 {}
 
-utils::expected<UploadPasteResult, UploadPasteError> WriteService::UploadPaste(std::string text,
+utils::expected<CreateUploadPresignedUrlResult, CreateUploadPresignedUrlError> WriteService::CreateUploadPresignedUrl(
     std::string user_id, UploadPasteLifetime lifetime) const {
-    if (text.empty())
-        return {UploadPasteError::kEmptyText};
-    if (text.size() > kMaxBlobSizeBytes)
-        return {UploadPasteError::kTextTooLarge};
-
     auto expires_in = ToDuration(lifetime);
     if (!expires_in)
-        return {UploadPasteError::kInvalidLifetimeParam};
+        return {CreateUploadPresignedUrlError::kInvalidLifetimeParam};
 
     auto now = std::chrono::system_clock::now();
     auto expires_at = now + *expires_in;
-
-    PasteBlob blob{{}, std::move(text), expires_at};
     PasteMetadata metadata{
         .id = {}, // is set below
         .owner_user_id = std::move(user_id),
         .created_at = storages::postgres::TimePointTz(now),
         .expires_at = storages::postgres::TimePointTz(expires_at),
-        .size_bytes = static_cast<int>(blob.text.size()),
+        .size_bytes = 0, // is set when submit validations are done
     };
 
     for (int i = 0; i <= kIdCollisionRetries; ++i) {
-        blob.id = id_gen::GenId();
-        tracing::Span::CurrentSpan().AddTag("paste_id", blob.id); // distributed tracing
+        std::string paste_id = id_gen::GenId();
+        tracing::Span::CurrentSpan().AddTag("paste_id", paste_id); // distributed tracing
 
-        auto blob_err = blob_repo_.UploadPasteBlob(blob);
-        if (blob_err) {
-            if (*blob_err == UploadPasteBlobError::kIdCollision)
-                continue;
+        auto presigned_url = blob_repo_.CreatePresignedPut(paste_id, kPresignedPutUrlTtl);
 
-            return {UploadPasteError::kDbError};
-        }
-
-        metadata.id = std::move(blob.id);
-        auto metadata_err = metadata_repo_.UploadPasteMetadata(metadata);
+        metadata.id = std::move(paste_id);
+        auto metadata_err = metadata_repo_.CreatePendingUpload(metadata);
         if (metadata_err) {
-            if (*metadata_err == UploadPasteMetadataError::kIdCollision)
-                continue;
-
-            return {UploadPasteError::kDbError};
+            switch (*metadata_err) {
+                case CreatePendingUploadError::kUserRateLimitExceeded:
+                    return {CreateUploadPresignedUrlError::kUserRateLimitExceeded};
+                case CreatePendingUploadError::kIdCollision:
+                    continue;
+                default:
+                    return {CreateUploadPresignedUrlError::kDbError};
+            }
         }
 
-        return dto::UploadPasteResult(std::move(metadata));
+        return dto::CreateUploadPresignedUrlResult{
+            .presigned_url = std::move(presigned_url)
+        };
     }
     
     LOG_WARNING() << "Upload id gen exceeded max number of retries";
-    return {UploadPasteError::kIdCollisionRetryExceeded};
+    return {CreateUploadPresignedUrlError::kIdCollisionRetryExceeded};
+}
+
+userver::utils::expected<SubmitUploadResult, SubmitUploadError>
+    WriteService::SubmitUpload(std::string paste_id, std::string_view user_id) const {
+
+    auto blob_s3_meta = userver::utils::Async("get_blob_metadata", [this, &paste_id] {
+        return blob_repo_.GetPendingBlobMetadataBlocking(paste_id);
+    }).Get();
+    if (!blob_s3_meta) {
+        switch (blob_s3_meta.error()) {
+            case GetPendingBlobMetadataError::kNotFound: {
+                LOG_DEBUG() << "GetPendingBlobMetadataError NotFound paste_id=" << paste_id << " user_id=" << user_id;
+                return {SubmitUploadError::kBlobNotExists};
+            }
+            default: return {SubmitUploadError::kDbError};
+        }
+    }
+    if (blob_s3_meta.value().size_bytes == 0) 
+        return {SubmitUploadError::kBadBlobContent};
+    if (blob_s3_meta.value().size_bytes > kMaxBlobSizeBytes)
+        return {SubmitUploadError::kBlobTooLarge};
+
+    auto blob_submit_err = userver::utils::Async("submit_blob", [this, &paste_id, &version_id = blob_s3_meta.value().version_id] {
+        return blob_repo_.SubmitBlobBlocking(paste_id, version_id);
+    }).Get();
+    if (blob_submit_err) {
+        switch (*blob_submit_err) {
+            case SubmitBlobError::kNotFound: {
+                LOG_DEBUG() << "SubmitBlobError NotFound paste_id=" << paste_id << " user_id=" << user_id;
+                return {SubmitUploadError::kBlobNotExists};
+            }
+            default: return {SubmitUploadError::kDbError};
+        }
+    }
+
+    auto metadata_err = metadata_repo_.SubmitUpload(
+        std::move(paste_id),
+        std::move(blob_s3_meta.value().version_id),
+        user_id,
+        blob_s3_meta.value().size_bytes
+    );
+    if (metadata_err) {
+        switch (*metadata_err) {
+            case SubmitUploadMetadataError::kConflict: {
+                LOG_DEBUG() << "SubmitUploadMetadataError Conflict paste_id=" << paste_id << " user_id=" << user_id;
+                return {SubmitUploadError::kConflict};
+            }
+            default: return {SubmitUploadError::kDbError};
+        }
+    }
+
+    return SubmitUploadResult{};
 }
 
 utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(const std::string_view& id,
@@ -77,6 +136,7 @@ utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(c
     if (metadata_err) {
         switch (*metadata_err) {
             case DeletePasteMetadataError::kUnauthorized: return {DeletePasteError::kUnauthorized};
+            case DeletePasteMetadataError::kAlreadySoftDeleted: return {DeletePasteError::kAlreadySoftDeleted};
             case DeletePasteMetadataError::kNotExists: return {DeletePasteError::kNotExists};
             default: return {DeletePasteError::kDbError};
         }
@@ -88,7 +148,7 @@ utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(c
         [&blob_repo = blob_repo_, // passing repo by ref - it's a component with lifetime of the whole process
             id = std::string(id)]() {
             try {
-                blob_repo.DeletePasteBlob(id);
+                blob_repo.DeletePasteBlobBlocking(id, {});
             } catch (const std::exception& e) {
                 LOG_WARNING() << "Blob cleanup error id=" << id;
             }
