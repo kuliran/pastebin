@@ -1,4 +1,5 @@
 .ccache
+.vcpkg
 shared/pytest/**/__pycache__
 tests/venv/
 tests/e2e/__pycache__/
