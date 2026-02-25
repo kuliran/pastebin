@@ -1,0 +1,14 @@
+{
+  "name": "pastebin",
+  "version": "0.1.0",
+  "dependencies": [
+    {
+      "name": "openssl"
+    },
+    {
+      "name": "aws-sdk-cpp",
+      "features": [ "s3" ],
+      "default-features": false
+    }
+  ]
+}

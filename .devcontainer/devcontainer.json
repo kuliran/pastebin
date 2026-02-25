@@ -41,5 +41,6 @@
   },
   "mounts": [],
   "onCreateCommand": "git config --global --add safe.directory /app",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
   "workspaceFolder": "/app"
 }

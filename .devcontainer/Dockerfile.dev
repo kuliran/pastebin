@@ -1,5 +1,8 @@
 FROM ghcr.io/userver-framework/ubuntu-22.04-userver-pg-dev:v2.15
 
+ARG UID=1000
+ARG GID=1000
+
 # Install argon2 for password hashing
 RUN apt-get install -y libargon2-dev
 
@@ -8,16 +11,12 @@ RUN git clone https://github.com/Thalhammer/jwt-cpp.git /tmp/jwt-cpp \
     && cp -r /tmp/jwt-cpp/include/* /usr/include/ \
     && rm -rf /tmp/jwt-cpp
 
-# Install mongodb
-RUN wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null \
-    && echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
-        | tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list \
-    && apt-get update && apt-get install -y \
-        mongodb-org \
-        mongodb-mongosh
-# Install pg dependencies
-RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /tmp/postgresql.gpg \
-    && mv /tmp/postgresql.gpg /usr/share/keyrings/postgresql.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt jammy-pgdg main" \
-        > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update && apt-get install -y postgresql-14-partman
+# Install minio
+RUN wget https://dl.min.io/server/minio/release/linux-amd64/minio \
+    -O /usr/local/bin/minio && chmod +x /usr/local/bin/minio
+
+RUN apt-get install -y zip \
+    && git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg/ \
+    && cd /opt/vcpkg/ \
+    && ./bootstrap-vcpkg.sh \
+    && chown -R ${UID}:${GID} /opt/vcpkg/

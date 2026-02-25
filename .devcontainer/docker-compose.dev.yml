@@ -4,12 +4,18 @@ services:
     build:
       context: .
       dockerfile: .devcontainer/Dockerfile.dev
+      args:
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
     volumes:
       - .:/app:rw
       - ./shared/keys/dev:/run/secrets:ro
+      - ./.vcpkg/cache:/opt/vcpkg_cache/
+      - ./.vcpkg/installed:/opt/vcpkg_installed
     environment:
       POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
-      MONGO_CONNECTION: ${MONGO_CONNECTION}
+      VCPKG_DEFAULT_BINARY_CACHE: /opt/vcpkg_cache
+      VCPKG_INSTALLED_DIR: /opt/vcpkg_installed
     command: sleep infinity
     networks:
       - dev
