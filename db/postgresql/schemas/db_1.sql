@@ -31,8 +31,21 @@ CREATE TABLE IF NOT EXISTS users.jwt_sessions (
 CREATE UNIQUE INDEX uniq_jwt_sessions_refresh_tk ON users.jwt_sessions(refresh_tk);
 
 -- V004__paste_metadata_with_users
+CREATE TYPE pastes.status AS ENUM ('pending', 'submitted', 'deleted');
+
 ALTER TABLE pastes.metadata
     ADD COLUMN owner_user_id TEXT,
+    ADD COLUMN status pastes.status NOT NULL DEFAULT 'pending',
+    ADD COLUMN s3_version_id TEXT,
     ALTER COLUMN delete_key DROP NOT NULL;
+-- no FK constraint
 
+-- V005__pastes_rate_limit
+CREATE TABLE IF NOT EXISTS pastes.rate_limit (
+    user_id TEXT,
+    upload_create_url_cnt INT NOT NULL DEFAULT 0,
+    upload_submit_cnt INT NOT NULL DEFAULT 0,
+    window_started_at TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (user_id)
+);
 -- no FK constraint
