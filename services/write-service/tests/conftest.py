@@ -1,16 +1,18 @@
 import pytest
-import yaml
 import pathlib
 import sys
-
+import os
 from testsuite.databases.pgsql import discover
 
 pytest_plugins = [
     'pytest_userver.plugins.core',
     'pytest_userver.plugins.postgresql', 
-    'pytest_userver.plugins.mongo',
+    'pytest_userver.plugins.s3api',
     'fixtures.api_upload_paste',
     'fixtures.api_delete_paste',
+    'shared.fixtures.endpoints',
+    'shared.fixtures.make_minio',
+    'shared.fixtures.make_pgsql',
     'shared.fixtures.raw_insert_paste',
     'shared.fixtures.raw_get_paste',
     'shared.fixtures.auth',
@@ -18,58 +20,32 @@ pytest_plugins = [
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'shared' / 'pytest'))
-from shared.fixtures.make_pgsql import make_pgsql
 
-# ================================
-# MONGODB
-# ================================
 @pytest.fixture(scope='session')
-def mongodb_settings():
+def make_pgsql():
     return {
-        'pastes_db_1': {
-            'settings': {
-                'collection': 'pastes',
-                'connection': 'pastes_db_1',
-                'database': 'pastes_db_1',
-            },
-            'indexes': [],
-        },
+        'db_name': 'pg',
+        'schemas_path': REPO_ROOT / 'db' / 'postgresql' / 'schemas',
     }
 
-# ================================
-# POSTGRESQL
-# ================================
-pgsql_local = make_pgsql(
-    'pg',
-    REPO_ROOT / 'db' / 'postgresql' / 'schemas'
-)
-
-@pytest.fixture(scope='session')
-def userver_pg_config(service_static_config):
-    component = service_static_config['components_manager']['components'].get('postgres-db-1')
-    dbconnection = component.get('dbconnection')
-    
-    def _userver_pg_config(config_vars, config_vars_path):
-        return {
-            'postgres-db-1': {
-                'dbconnection': dbconnection,
-            }
-        }
-    return _userver_pg_config
-
-# ================================
-# GENERAL
-# ================================
-@pytest.fixture(scope='session')
-def service_static_config(service_source_dir):
-    config_path = service_source_dir / 'configs' / 'static_config.yaml'
-    with open(config_path) as f:
-        return yaml.safe_load(f)
-
-@pytest.fixture
-def mongo_collection(mongodb):
-    return mongodb['pastes_db_1']
+@pytest.fixture(scope="session")
+def make_minio():
+    return {
+        'bucket': 'pastes',
+        'access_key': 'minioadmin',
+        'secret_key': 'minioadmin',
+        'port': 19000,
+    }
 
 @pytest.fixture
 def pg_cursor(pgsql):
     return pgsql['db_1'].cursor()
+
+@pytest.fixture(scope='session')
+def service_env(minio_server):
+    return {
+        'S3_ENDPOINT': minio_server["endpoint"],
+        'S3_ACCESS_KEY': minio_server["access_key"],
+        'S3_SECRET_KEY': minio_server["secret_key"],
+        'UBSAN_OPTIONS': 'suppressions=' + str(pathlib.Path(__file__).parent / 'ubsan.supp') + ':print_stacktrace=1:print_suppressions=1'
+    }

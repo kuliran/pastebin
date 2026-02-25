@@ -1,44 +1,61 @@
 import pytest
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 import shared.utils.auth as auth
 
 @dataclass
-class UploadResult:
+class UploadCreateUrlResult:
+    presigned_url: str
     paste_id: str
-    paste_text_utf: str
-    pg_created_at_utc: datetime
-    pg_expires_at_utc: datetime
-    pg_size_bytes: int
+    created_at_utc: datetime
+    expires_at_utc: datetime
+
+@dataclass
+class UploadS3Result:
+    text_utf: str
+    size_bytes: int
+
+@dataclass
+class UploadSubmitResult:
+    created_at_utc: datetime
+    expires_at_utc: datetime
+    size_bytes: int
+
+@dataclass
+class UploadFullResult:
+    paste_id: str
+    presigned_url: str
+    text_utf: str
+    created_at_utc: datetime
+    expires_at_utc: datetime
+    size_bytes: int
+
 
 @pytest.fixture
-async def api_upload_paste(pg_cursor, mongo_collection, auth_client) -> UploadResult:
-    async def _upload(paste_text: str, expires_in: str = None, *, client: auth.AuthClient = auth_client) -> UploadResult:
-        # Preparation
-        utf_text = paste_text.encode('utf-8')
-        utf_len = len(utf_text)
+async def api_upload_create_url(pg_cursor, auth_client, api_upload_create_url_raw):
+    async def impl(expires_in: str = None, *, client: auth.Client = auth_client) -> UploadCreateUrlResult:
         now_utc = datetime.now(timezone.utc)
 
-        # API call
-        request_json = {"text": paste_text}
-        if expires_in is not None:
-            request_json["expires_in"] = expires_in
-        response = await client.post(f'/api/v1/paste/', json=request_json)
-        assert response.status == 200
+        response = await api_upload_create_url_raw(expires_in, client=client)
+        assert response.status == 201
         assert 'application/json' in response.headers['Content-Type']
 
         json = response.json()
-        paste_id = json['id']
-        assert type(paste_id) is str
+        presigned_url = json['presigned_url']
+        assert type(presigned_url) is str
+
+        parsed = urlparse(presigned_url)
+        paste_id = parsed.path.lstrip("/").split("/")[-1]
         assert 1 <= len(paste_id) <= 64
 
         # Postgres validation
         pg_cursor.execute("""
-            SELECT created_at, expires_at, size_bytes
+            SELECT owner_user_id, created_at, expires_at, size_bytes, status
             FROM pastes.metadata
             WHERE id = %s
         """, (paste_id,))
-        pg_created_at, pg_expires_at, pg_size_bytes = pg_cursor.fetchone()
+        pg_owner_user_id, pg_created_at, pg_expires_at, pg_size_bytes, pg_status = pg_cursor.fetchone()
         pg_created_at = pg_created_at.astimezone(timezone.utc)
         pg_expires_at = pg_expires_at.astimezone(timezone.utc)
 
@@ -49,22 +66,104 @@ async def api_upload_paste(pg_cursor, mongo_collection, auth_client) -> UploadRe
         elif expires_in == '1_month': lifetime_seconds = 60*60*24*30
         elif expires_in == '3_month': lifetime_seconds = 60*60*24*30*3
 
+        assert pg_status == 'pending'
+        assert pg_size_bytes == 0
+        assert pg_owner_user_id == client._user_id
         assert abs((pg_created_at - now_utc).total_seconds()) <= 1
         assert (pg_expires_at - pg_created_at).total_seconds() == lifetime_seconds, f"incorrect pg expires_at with param: {expires_in}"
-        assert pg_size_bytes == utf_len
 
-        # Mongo validation
-        blob = mongo_collection.find_one({"_id": paste_id})
-        assert blob is not None
-        assert blob["_id"] == paste_id
-        assert blob["text"] == paste_text
-        assert abs(blob["expire_at"].astimezone(timezone.utc) - pg_expires_at).total_seconds() < 0.5
-
-        return UploadResult(
+        return UploadCreateUrlResult(
+            presigned_url=presigned_url,
             paste_id=paste_id,
-            paste_text_utf=utf_text,
-            pg_created_at_utc=pg_created_at,
-            pg_expires_at_utc=pg_expires_at,
-            pg_size_bytes=pg_size_bytes
+            created_at_utc=pg_created_at,
+            expires_at_utc=pg_expires_at,
         )
-    return _upload
+    return impl
+
+@pytest.fixture
+async def api_upload_create_url_raw(pg_cursor, endpoints, auth_client):
+    async def impl(expires_in: str = None, *, client: auth.Client = auth_client):
+        request_json = {}
+        if expires_in is not None:
+            request_json["expires_in"] = expires_in
+        return await client.post(endpoints['upload_paste_create_url'], json=request_json)
+    return impl
+
+
+@pytest.fixture
+async def s3_upload(minio_server):
+    async def impl(presigned_url: str, text: str) -> UploadS3Result:
+        data = text.encode("utf-8")
+
+        import requests
+        upload_response = requests.put(
+            presigned_url,
+            data=data,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        assert upload_response.status_code == 200
+
+        return UploadS3Result(
+            text_utf=data,
+            size_bytes=len(data),
+        )
+    return impl
+
+
+@pytest.fixture
+async def api_upload_submit(pg_cursor, api_upload_submit_raw, auth_client):
+    async def impl(paste_id: str, *, client: auth.Client = auth_client) -> UploadSubmitResult:
+        response = await api_upload_submit_raw(paste_id, client=client)
+        assert response.status == 200
+        assert 'application/json' in response.headers['Content-Type']
+
+        # Postgres validation
+        pg_cursor.execute("""
+            SELECT owner_user_id, created_at, expires_at, size_bytes, status
+            FROM pastes.metadata
+            WHERE id = %s
+        """, (paste_id,))
+        pg_owner_user_id, pg_created_at, pg_expires_at, pg_size_bytes, pg_status = pg_cursor.fetchone()
+        pg_created_at = pg_created_at.astimezone(timezone.utc)
+        pg_expires_at = pg_expires_at.astimezone(timezone.utc)
+
+        assert pg_status == 'submitted'
+        assert pg_owner_user_id == client._user_id
+
+        return UploadSubmitResult(
+            created_at_utc=pg_created_at,
+            expires_at_utc=pg_expires_at,
+            size_bytes=pg_size_bytes,
+        )
+    return impl
+
+@pytest.fixture
+async def api_upload_submit_raw(endpoints, auth_client):
+    async def impl(paste_id: str, *, client: auth.Client = auth_client):
+        request_json = {}
+        request_json["paste_id"] = paste_id
+        return await client.post(endpoints['upload_paste_submit'], json=request_json)
+    return impl
+
+
+@pytest.fixture
+async def api_upload_full(api_upload_create_url, api_upload_submit, s3_upload, auth_client):
+    async def impl(text: str, expires_in: str = None, *, client: auth.Client = auth_client) -> UploadFullResult:
+        # Preparation
+        create_url_res = await api_upload_create_url(expires_in, client=client)
+        s3_upload_res = await s3_upload(create_url_res.presigned_url, text)
+        submit_res = await api_upload_submit(create_url_res.paste_id, client=client)
+
+        assert submit_res.size_bytes == s3_upload_res.size_bytes
+        assert create_url_res.created_at_utc == submit_res.created_at_utc
+        assert create_url_res.expires_at_utc == submit_res.expires_at_utc
+
+        return UploadFullResult(
+            paste_id=create_url_res.paste_id,
+            presigned_url=create_url_res.presigned_url,
+            text_utf=s3_upload_res.text_utf,
+            created_at_utc=submit_res.created_at_utc,
+            expires_at_utc=submit_res.expires_at_utc,
+            size_bytes=s3_upload_res.size_bytes
+        )
+    return impl

@@ -19,7 +19,7 @@ def make_test_token(user_id: str) -> str:
     )
 
 @dataclass
-class AuthClient:
+class Client:
     _client: object
     _access_tk: str
     _user_id: str

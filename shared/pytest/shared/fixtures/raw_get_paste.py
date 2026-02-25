@@ -5,12 +5,13 @@ from datetime import datetime
 @dataclass
 class GetPasteResult:
     text: str
+    version_id: str
     size_bytes: int
     created_at_utc: datetime
     expires_at_utc: datetime
 
 @pytest.fixture
-def raw_get_paste(pg_cursor, mongo_collection) -> GetPasteResult:
+def raw_get_paste(pg_cursor, minio_server) -> GetPasteResult:
     async def _get(paste_id: str):
         pg_cursor.execute("""
             SELECT created_at, expires_at, size_bytes
@@ -18,16 +19,20 @@ def raw_get_paste(pg_cursor, mongo_collection) -> GetPasteResult:
             WHERE id = %s
         """, (paste_id,))
         created_at, expires_at, size_bytes = pg_cursor.fetchone()
-
         assert created_at is not None
 
-        json = mongo_collection.find_one({
-            '_id': paste_id,
-        })
-        assert type(json['text']) is str
+        key = 'pending/' + paste_id
+
+        s3 = minio_server["client"]
+        response = s3.get_object(Bucket=minio_server['bucket'], Key=key)
+        content = response["Body"].read()
+        head = s3.head_object(Bucket=minio_server['bucket'], Key=key)
+        version_id = head["VersionId"]
+        assert size_bytes == head["ContentLength"]
 
         return GetPasteResult(
-            text=json['text'],
+            text=content,
+            version_id=version_id,
             size_bytes=size_bytes,
             created_at_utc=created_at,
             expires_at_utc=expires_at,

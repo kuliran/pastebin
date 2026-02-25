@@ -8,7 +8,7 @@ def auth_client(new_auth_client):
 @pytest.fixture
 def new_auth_client(service_client):
     def _new_auth_client(user_id):
-        return auth.AuthClient(
+        return auth.Client(
             _client=service_client,
             _access_tk=auth.make_test_token(user_id),
             _user_id=user_id,

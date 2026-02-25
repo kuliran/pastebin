@@ -4,35 +4,45 @@ from datetime import datetime
 
 @dataclass
 class RawInsertResult:
+    paste_id: str
+    version_id: str
     size_bytes: int
     pg_created_at_utc: datetime
     pg_expires_at_utc: datetime
 
 @pytest.fixture
-def raw_insert_paste(pg_cursor, mongo_collection, auth_client):
-    async def _insert(paste_id: str, paste_text: str, expires_in: str = '24 hours',
-        owner_user_id: str = auth_client._user_id) -> RawInsertResult:
+def raw_insert_paste(pg_cursor, minio_server, auth_client):
+    async def _insert(
+        paste_id: str,
+        paste_text: str,
+        expires_in: str = '24 hours',
+        owner_user_id: str = auth_client._user_id
+    ) -> RawInsertResult:
+        s3 = minio_server["client"]
+        content = paste_text.encode("utf-8")
 
-        text_utf = paste_text.encode('utf-8')
-        utf_len = len(text_utf)
+        response = s3.put_object(
+            Bucket=minio_server["bucket"],
+            Key=f"submitted/{paste_id}",
+            Body=content,
+        )
+        version_id = response["VersionId"]
+        size_bytes = len(content)
 
-        # Insert into Postgres
-        pg_cursor.execute("""
-            INSERT INTO pastes.metadata(id, owner_user_id, created_at, expires_at, size_bytes)
-            VALUES (%s, %s, NOW(), NOW() + INTERVAL %s, %s)
+        pg_cursor.execute(
+            """
+            INSERT INTO pastes.metadata (id, owner_user_id, status, s3_version_id, size_bytes, created_at, expires_at)
+            VALUES (%s, %s, 'submitted', %s, %s, NOW(), NOW() + %s::interval)
             RETURNING created_at, expires_at
-        """, (paste_id, owner_user_id, expires_in, utf_len))
+            """,
+            (paste_id, owner_user_id, version_id, size_bytes, expires_in)
+        )
         pg_created_at, pg_expires_at = pg_cursor.fetchone()
 
-        # Insert into Mongo
-        mongo_collection.insert_one({
-            '_id': paste_id,
-            'text': paste_text,
-            'expire_at': pg_expires_at
-        })
-
         return RawInsertResult(
-            size_bytes=utf_len,
+            paste_id=paste_id,
+            version_id=version_id,
+            size_bytes=size_bytes,
             pg_created_at_utc=pg_created_at,
             pg_expires_at_utc=pg_expires_at,
         )
