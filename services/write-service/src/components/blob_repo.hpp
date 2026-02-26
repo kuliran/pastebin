@@ -8,10 +8,6 @@
 
 namespace write_service {
 
-enum class CreatePresignedPutError {
-    kIdCollision,
-    kDbError,
-};
 enum class GetPendingBlobMetadataError {
     kNotFound,
     kDbError,
