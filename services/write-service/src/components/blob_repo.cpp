@@ -1,5 +1,5 @@
 #include "components/blob_repo.hpp"
-#include "components/aws_sdk_component.hpp"
+#include "aws/aws_sdk_component.hpp"
 
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
@@ -22,7 +22,7 @@ BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::
     : components::LoggableComponentBase(config, ctx)
 {
     // AwsSdkComponent must be initialized earlier
-    ctx.FindComponent<AwsSdkComponent>();
+    ctx.FindComponent<Aws::AwsSdkComponent>();
 
     bucket_ = config["bucket"].As<std::string>();
     auto endpoint = config["endpoint"].As<std::string>();

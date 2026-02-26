@@ -14,7 +14,6 @@ include(DownloadUserver)
 find_package(
     userver
     COMPONENTS core
-               s3api
                postgresql
     REQUIRED
 )
@@ -29,6 +28,7 @@ userver_setup_environment()
 add_subdirectory(${SHARED_DIR}/libs/jwt deps/jwt)
 
 find_package(AWSSDK CONFIG REQUIRED COMPONENTS s3)
+add_subdirectory(${SHARED_DIR}/libs/aws deps/aws)
 
 # find_package(aws-cpp-sdk-core REQUIRED)
     # target_include_directories(main PRIVATE aws-cpp-sdk-core)
@@ -42,7 +42,6 @@ add_library(
     src/services/write_service.cpp
     src/components/metadata_repo.cpp
     src/components/blob_repo.cpp
-    src/components/aws_sdk_component.cpp
     src/components/cache_purger.cpp
     src/components/cleanup_job.cpp
     src/handlers/upload_create_url.cpp
@@ -53,15 +52,10 @@ add_library(
 target_link_libraries(
     ${PROJECT_NAME}_objs
     PUBLIC userver::core
-           userver::s3api
            userver::postgresql
            shared_models
            jwt_verifier
-           ${AWSSDK_LIBRARIES}
-)
-target_include_directories(
-    ${PROJECT_NAME}_objs
-    PUBLIC ${AWSSDK_INCLUDE_DIRS}
+           shared_aws
 )
 
 # The Service

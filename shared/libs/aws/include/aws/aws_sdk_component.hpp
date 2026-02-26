@@ -1,7 +1,8 @@
 #pragma once
+
 #include <userver/components/component_base.hpp>
 
-namespace write_service {
+namespace Aws {
 
 class AwsSdkComponent final : public userver::components::ComponentBase {
 public:

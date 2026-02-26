@@ -1,10 +1,10 @@
-#include "aws_sdk_component.hpp"
+#include "aws/aws_sdk_component.hpp"
 
 #include <aws/core/Aws.h>
 
 static Aws::SDKOptions aws_options_;
 
-namespace write_service {
+namespace Aws {
 
 AwsSdkComponent::AwsSdkComponent(
     const userver::components::ComponentConfig& config,

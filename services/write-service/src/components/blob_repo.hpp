@@ -1,8 +1,8 @@
 #pragma once
 
 #include <userver/components/component_base.hpp>
-#include <userver/s3api/clients/s3api.hpp>
 #include <userver/utils/expected.hpp>
+#include <optional>
 
 #include <aws/s3/S3Client.h>
 
@@ -46,7 +46,6 @@ public:
     static userver::yaml_config::Schema GetStaticConfigSchema();
 
 private:
-    // userver::s3api::Client& s3_;
     std::shared_ptr<Aws::S3::S3Client> aws_client_;
     std::string bucket_;
 };

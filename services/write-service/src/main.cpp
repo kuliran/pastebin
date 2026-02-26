@@ -15,7 +15,7 @@
 
 #include "jwt/auth_checker_http.hpp"
 #include "services/write_service.hpp"
-#include "components/aws_sdk_component.hpp"
+#include "aws/aws_sdk_component.hpp"
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
 #include "components/cleanup_job.hpp"
@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
             .Append<userver::components::Postgres>("postgres-db-1")
             .Append<jwt_wrapper::JwtVerifierComponent>()
 
-            .Append<write_service::AwsSdkComponent>()
+            .Append<Aws::AwsSdkComponent>()
             .Append<write_service::WriteService>()
             .Append<write_service::MetadataRepo>()
             .Append<write_service::CachePurger>()
