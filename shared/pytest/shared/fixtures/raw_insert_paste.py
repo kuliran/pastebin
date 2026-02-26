@@ -8,8 +8,9 @@ class RawInsertResult:
     paste_id: str
     version_id: str
     size_bytes: int
-    pg_created_at_utc: datetime
-    pg_expires_at_utc: datetime
+    data: bytes
+    created_at_utc: datetime
+    expires_at_utc: datetime
 
 @pytest.fixture
 def raw_insert_paste(pg_cursor, minio_server, auth_client):
@@ -20,10 +21,9 @@ def raw_insert_paste(pg_cursor, minio_server, auth_client):
         *,
         client: auth.Client = auth_client
     ) -> RawInsertResult:
-        s3 = minio_server["client"]
         data = paste_text.encode("utf-8")
 
-        response = s3.put_object(
+        response = minio_server["client"].put_object(
             Bucket=minio_server["bucket"],
             Key=f"submitted/{paste_id}",
             Body=data,
@@ -45,7 +45,8 @@ def raw_insert_paste(pg_cursor, minio_server, auth_client):
             paste_id=paste_id,
             version_id=version_id,
             size_bytes=size_bytes,
-            pg_created_at_utc=pg_created_at,
-            pg_expires_at_utc=pg_expires_at,
+            data=data,
+            created_at_utc=pg_created_at,
+            expires_at_utc=pg_expires_at,
         )
     return _insert
