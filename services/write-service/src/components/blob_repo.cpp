@@ -26,8 +26,6 @@ BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::
 
     bucket_ = config["bucket"].As<std::string>();
     auto endpoint = config["endpoint"].As<std::string>();
-    // const auto timeout = config["timeout_ms"].As<int>(500);
-    // const auto retries = config["retries"].As<int>(2);
     auto access_key = config["access_key"].As<std::string>();
     auto secret_key = config["secret_key"].As<std::string>();
     auto region = config["region"].As<std::string>("us-east-1");
@@ -157,14 +155,6 @@ userver::yaml_config::Schema BlobRepo::GetStaticConfigSchema() {
                 type: boolean
                 description: Use HTTPS
                 defaultDescription: false
-            timeout_ms:
-                type: integer
-                description: Request timeout ms
-                defaultDescription: 500
-            retries:
-                type: integer
-                description: Retry count
-                defaultDescription: 2
         )"
     );
 }
