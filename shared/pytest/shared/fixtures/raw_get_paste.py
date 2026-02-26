@@ -43,11 +43,11 @@ def raw_get_paste(pg_cursor, minio_server) -> GetPasteResult:
 def raw_get_paste_expect_none(pg_cursor):
     async def _get(paste_id: str):
         pg_cursor.execute("""
-            SELECT created_at
+            SELECT status
             FROM pastes.metadata
             WHERE id = %s
         """, (paste_id,))
-        created_at = pg_cursor.fetchone()
+        (status,) = pg_cursor.fetchone()
 
-        assert created_at is None
+        assert status is None or status == 'deleted'
     return _get

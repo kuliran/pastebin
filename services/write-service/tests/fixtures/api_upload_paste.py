@@ -13,7 +13,7 @@ class UploadCreateUrlResult:
 
 @dataclass
 class UploadS3Result:
-    text_utf: str
+    text: str
     size_bytes: int
 
 @dataclass
@@ -26,7 +26,7 @@ class UploadSubmitResult:
 class UploadFullResult:
     paste_id: str
     presigned_url: str
-    text_utf: str
+    text: str
     created_at_utc: datetime
     expires_at_utc: datetime
     size_bytes: int
@@ -104,7 +104,7 @@ async def s3_upload(minio_server):
         assert upload_response.status_code == 200
 
         return UploadS3Result(
-            text_utf=data,
+            text=data,
             size_bytes=len(data),
         )
     return impl
@@ -161,7 +161,7 @@ async def api_upload_full(api_upload_create_url, api_upload_submit, s3_upload, a
         return UploadFullResult(
             paste_id=create_url_res.paste_id,
             presigned_url=create_url_res.presigned_url,
-            text_utf=s3_upload_res.text_utf,
+            text=s3_upload_res.text,
             created_at_utc=submit_res.created_at_utc,
             expires_at_utc=submit_res.expires_at_utc,
             size_bytes=s3_upload_res.size_bytes

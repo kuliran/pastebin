@@ -51,6 +51,8 @@ def minio_server(tmp_path_factory, make_minio):
         Bucket=make_minio['bucket'],
         VersioningConfiguration={'Status': 'Enabled'}
     )
+    with open(make_minio['policy_file_path']) as f:
+        s3.put_bucket_policy(Bucket=make_minio['bucket'], Policy=f.read()) 
 
     yield {
         "endpoint": endpoint,

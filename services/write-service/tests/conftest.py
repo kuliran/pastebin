@@ -2,12 +2,11 @@ import pytest
 import pathlib
 import sys
 import os
-from testsuite.databases.pgsql import discover
+import yaml
 
 pytest_plugins = [
     'pytest_userver.plugins.core',
     'pytest_userver.plugins.postgresql', 
-    'pytest_userver.plugins.s3api',
     'fixtures.api_upload_paste',
     'fixtures.api_delete_paste',
     'shared.fixtures.endpoints',
@@ -35,6 +34,7 @@ def make_minio():
         'access_key': 'minioadmin',
         'secret_key': 'minioadmin',
         'port': 19000,
+        'policy_file_path': REPO_ROOT / 'db' / 'minio' / 'pastes_policy.json'
     }
 
 @pytest.fixture
@@ -49,3 +49,9 @@ def service_env(minio_server):
         'S3_SECRET_KEY': minio_server["secret_key"],
         'UBSAN_OPTIONS': 'suppressions=' + str(pathlib.Path(__file__).parent / 'ubsan.supp') + ':print_stacktrace=1:print_suppressions=1'
     }
+
+@pytest.fixture(scope='session')
+def service_static_config(service_source_dir):
+    config_path = service_source_dir / 'configs' / 'static_config.yaml'
+    with open(config_path) as f:
+        return yaml.safe_load(f)
