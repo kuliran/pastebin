@@ -11,24 +11,23 @@ pytest_plugins = [
     'fixtures.signup',
     'fixtures.login',
     'fixtures.auth_refresh',
+    'shared.fixtures.endpoints',
+    'shared.fixtures.make_pgsql',
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'shared' / 'pytest'))
-from shared.fixtures.make_pgsql import make_pgsql
 
 # ================================
 # POSTGRESQL
 # ================================
-pgsql_local = make_pgsql(
-    'pg',
-    REPO_ROOT / 'db' / 'postgresql' / 'schemas'
-)
+@pytest.fixture(scope='session')
+def make_pgsql():
+    return {
+        'db_name': 'pg',
+        'schemas_path': REPO_ROOT / 'db' / 'postgresql' / 'schemas',
+    }
 
 @pytest.fixture
 def pg_cursor(pgsql):
     return pgsql['db_1'].cursor()
-
-# ================================
-# GENERAL
-# ================================

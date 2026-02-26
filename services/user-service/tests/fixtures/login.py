@@ -8,10 +8,10 @@ class LoginResult:
     refresh_tk: str
 
 @pytest.fixture
-def login(service_client):
+def login(endpoints, service_client):
     async def _login(username: str, password: str) -> LoginResult:
         body = {"username": username, "password": password}
-        response = await service_client.post('/api/v2/auth/login', json=body)
+        response = await service_client.post(endpoints['auth_login'], json=body)
         assert response.status == 200
         tokens = auth.validate_response_tokens(response)
 
