@@ -1,13 +1,6 @@
 cmake_minimum_required(VERSION 3.12...3.31)
 project(write_service CXX)
 
-set (SHARED_DIR ${CMAKE_SOURCE_DIR}/../../shared
-    CACHE PATH "Path to shared directory")
-add_subdirectory(${SHARED_DIR}/libs/models shared_models)
-
-# removing sanitizers due to AWS not being built with them
-set(USERVER_SANITIZE "none" CACHE STRING "" FORCE)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DownloadUserver)
 
@@ -25,14 +18,15 @@ endif()
 userver_setup_environment()
 
 # Dependencies
+set (SHARED_DIR ${CMAKE_SOURCE_DIR}/../../shared
+    CACHE PATH "Path to shared directory")
+
 add_subdirectory(${SHARED_DIR}/libs/jwt deps/jwt)
+
+add_subdirectory(${SHARED_DIR}/libs/models deps/models)
 
 find_package(AWSSDK CONFIG REQUIRED COMPONENTS s3)
 add_subdirectory(${SHARED_DIR}/libs/aws deps/aws)
-
-# find_package(aws-cpp-sdk-core REQUIRED)
-    # target_include_directories(main PRIVATE aws-cpp-sdk-core)
-    # target_link_libraries(main PRIVATE aws-cpp-sdk-core)
 
 # Common sources
 include_directories(src)
