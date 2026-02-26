@@ -13,14 +13,14 @@ MetadataRepo::MetadataRepo(const components::ComponentConfig& config, const comp
 {}
 
 utils::expected<PasteMetadata, GetPasteMetadataError>
-    MetadataRepo::GetPasteMetadata(const std::string_view& id) const {
+    MetadataRepo::GetPasteMetadata(std::string_view id, std::string_view user_id) const {
     
     try {
         const auto result = pg_cluster_->Execute(
             storages::postgres::ClusterHostType::kSlave,
             "SELECT id, owner_user_id, created_at, expires_at, size_bytes "
             "FROM pastes.metadata "
-            "WHERE id = $1",
+            "WHERE id = $1 AND status = 'submitted'",
             id
         );
         if (result.IsEmpty()) {

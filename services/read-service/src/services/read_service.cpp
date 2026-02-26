@@ -15,12 +15,14 @@ ReadService::ReadService(const components::ComponentConfig& config, const compon
     , blob_repo_(component_context.FindComponent<BlobRepo>(BlobRepo::kName))
 {}
 
-utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(const std::string_view& id) const {
-    const auto metadata = metadata_repo_.GetPasteMetadata(id);
+utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string_view id, std::string_view user_id) const {
+    const auto metadata = metadata_repo_.GetPasteMetadata(id, user_id);
     if (!metadata) {
         switch (metadata.error()) {
             case GetPasteMetadataError::kNotFound:
                 return {GetPasteError::kNotExists};
+            case GetPasteMetadataError::kUnauthorized:
+                return {GetPasteError::kUnauthorized};
             case GetPasteMetadataError::kSoftExpired:
                 return {GetPasteError::kSoftExpired};
             default:
@@ -28,19 +30,8 @@ utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(const std::
         }
     }
 
-    const auto blob = blob_repo_.GetPasteBlob(id);
-    if (!blob) {
-        switch (blob.error()) {
-            case read_service::GetPasteBlobError::kNotFound: {
-                LOG_WARNING() << "Paste metadata exists, but no blob; paste_id=" << id;
-                return {GetPasteError::kNotExists};
-            }
-            default: {
-                return {GetPasteError::kDbError};
-            }
-        }
-    }
-    return GetPasteResult(std::move(metadata.value()), std::move(blob.value()));
+    auto presigned_url = blob_repo_.CreatePresignedGet(user_id, kPresignedGetUrlTtl);
+    return GetPasteResult(std::move(metadata.value()), std::move(presigned_url));
 }
 
 }

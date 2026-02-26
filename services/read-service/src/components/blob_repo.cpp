@@ -1,40 +1,83 @@
 #include "components/blob_repo.hpp"
+#include "aws/aws_sdk_component.hpp"
 
 #include <userver/components/component.hpp>
-#include <userver/storages/mongo/component.hpp>
-#include <userver/storages/mongo/exception.hpp>
-#include <userver/storages/mongo/operations.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
+
+#include <aws/core/auth/AWSCredentials.h>
 
 using namespace userver;
 
 namespace read_service {
 
-BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::ComponentContext& component_context)
-    : components::LoggableComponentBase(config, component_context)
-    , mongo_pool_(component_context.FindComponent<components::Mongo>(kDefaultMongoComponent).GetPool())
-{}
+BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::ComponentContext& ctx)
+    : components::LoggableComponentBase(config, ctx)
+{
+    // AwsSdkComponent must be initialized earlier
+    ctx.FindComponent<Aws::AwsSdkComponent>();
 
-utils::expected<PasteBlob, GetPasteBlobError> BlobRepo::GetPasteBlob(const std::string_view& id) const {
-    using formats::bson::MakeDoc;
+    bucket_ = config["bucket"].As<std::string>();
+    auto endpoint = config["endpoint"].As<std::string>();
+    auto access_key = config["access_key"].As<std::string>();
+    auto secret_key = config["secret_key"].As<std::string>();
+    auto region = config["region"].As<std::string>("us-east-1");
+    const bool use_https = config["use_https"].As<bool>(false);
 
-    try {
-        const auto blob_collection = mongo_pool_->GetCollection("pastes");
-        const auto mongo_result = blob_collection.FindOne(MakeDoc("_id", id));
-        if (!mongo_result)
-            return {GetPasteBlobError::kNotFound};
+    Aws::Client::ClientConfiguration aws_cfg;
+    aws_cfg.endpointOverride = std::move(endpoint);
+    aws_cfg.scheme = use_https ? Aws::Http::Scheme::HTTPS
+                               : Aws::Http::Scheme::HTTP;
+    aws_cfg.region = std::move(region);
 
-        try {
-            return mongo_result->As<PasteBlob>();
-        } catch (const std::exception& e) {
-            LOG_ERROR() << "Failed to parse PasteBlob: " << e.what();
-            return {GetPasteBlobError::kInvalidData};
-        }
-    } catch (const storages::mongo::MongoException& e) {
-        LOG_ERROR() << "DB error: " << e.what();
-        return {GetPasteBlobError::kDbError};
-    }
+    Aws::Auth::AWSCredentials aws_creds{std::move(access_key), std::move(secret_key)};
+    aws_client_ = std::make_shared<Aws::S3::S3Client>(
+        aws_creds,
+        aws_cfg,
+        Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+        /*useVirtualAddressing=*/false
+    );
+}
+
+std::string BlobRepo::CreatePresignedGet(std::string_view paste_id, std::chrono::seconds ttl) {
+    // is a pure cryptograpy operation - no thread-blocking network calls. Can be safely called in userver coroutines
+    return aws_client_->GeneratePresignedUrl(
+        bucket_,
+        "submitted/" + std::string(paste_id),
+        Aws::Http::HttpMethod::HTTP_GET,
+        static_cast<long long>(ttl.count())
+    );
+}
+
+userver::yaml_config::Schema BlobRepo::GetStaticConfigSchema() {
+    return userver::yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+        type: object
+        description: Paste storage backed by S3
+        additionalProperties: false
+        properties:
+            endpoint:
+                type: string
+                description: S3 endpoint (e.g. localhost:9000)
+            bucket:
+                type: string
+                description: S3 bucket name
+            access_key:
+                type: string
+                description: test
+            secret_key:
+                type: string
+                description: test
+            region:
+                type: string
+                description: AWS region (for signing, can be anything for MinIO)
+                defaultDescription: us-east-1
+            use_https:
+                type: boolean
+                description: Use HTTPS
+                defaultDescription: false
+        )"
+    );
 }
 
 }

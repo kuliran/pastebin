@@ -16,8 +16,10 @@ public:
 
     ReadService(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
-    userver::utils::expected<dto::GetPasteResult, dto::GetPasteError> GetPaste(const std::string_view& id) const;
+    userver::utils::expected<dto::GetPasteResult, dto::GetPasteError> GetPaste(std::string_view id, std::string_view user_id) const;
 private:
+    static constexpr std::chrono::seconds kPresignedGetUrlTtl = std::chrono::seconds{5*60};
+
     MetadataRepo& metadata_repo_;
     BlobRepo& blob_repo_;
 };

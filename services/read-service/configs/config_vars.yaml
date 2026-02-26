@@ -8,4 +8,6 @@ cache-purge-enabled: true
 server-port: 8080
 
 pg-connection#env: POSTGRES_CONNECTION
-mongo-connection#env: MONGO_CONNECTION
+s3-endpoint#env: S3_ENDPOINT
+s3-access-key#env: S3_ACCESS_KEY
+s3-secret-key#env: S3_SECRET_KEY

@@ -31,8 +31,16 @@ components_manager:
                     statement_timeout_ms: 500
 
         blob-repo:
+            endpoint: $s3-endpoint
+            bucket: pastes
+            access_key: $s3-access-key
+            secret_key: $s3-secret-key
+            region: us-east-1  # doesn't matter for MinIO but is mandatory
         metadata-repo:
         read-service:
+        aws-sdk:
+        jwt-verifier:
+            public-key-path: /run/secrets/public.pem
 
         testsuite-support: {}
 
@@ -54,9 +62,12 @@ components_manager:
             url_trailing_slash: strict-match
 
         handler-get-paste:
-            path: /api/v1/{id}
+            path: /api/v2/paste/{id}
             method: GET
             task_processor: main-task-processor
+            max_request_size: 1024 # 1KB
+            auth:
+                type: bearer
 
         postgres-db-1:
             dbconnection: $pg-connection
@@ -64,6 +75,3 @@ components_manager:
             dns_resolver: async
             sync-start: true
             connlimit_mode: manual
-
-        mongo-db-1:
-            dbconnection: $mongo-connection

@@ -1,19 +1,14 @@
 cmake_minimum_required(VERSION 3.12...3.31)
 project(read_service CXX)
 
-set (SHARED_DIR ${CMAKE_SOURCE_DIR}/../../shared
-    CACHE PATH "Path to shared directory")
-add_subdirectory(${SHARED_DIR}/libs/models shared_models)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DownloadUserver)
 
 find_package(
     userver
     COMPONENTS core
-               mongo
                postgresql
-    QUIET
+    REQUIRED
 )
 if(NOT userver_FOUND)
     # Tries TRY_DIR first, falls back to downloading userver from GitHub using CPM.
@@ -21,6 +16,17 @@ if(NOT userver_FOUND)
 endif()
 
 userver_setup_environment()
+
+# Dependencies
+set (SHARED_DIR ${CMAKE_SOURCE_DIR}/../../shared
+    CACHE PATH "Path to shared directory")
+
+add_subdirectory(${SHARED_DIR}/libs/jwt deps/jwt)
+
+add_subdirectory(${SHARED_DIR}/libs/models deps/models)
+
+find_package(AWSSDK CONFIG REQUIRED COMPONENTS s3)
+add_subdirectory(${SHARED_DIR}/libs/aws deps/aws)
 
 # Common sources
 include_directories(src)
@@ -35,9 +41,10 @@ add_library(
 target_link_libraries(
     ${PROJECT_NAME}_objs
     PUBLIC userver::core
-           userver::mongo
            userver::postgresql
            shared_models
+           jwt_verifier
+           shared_aws
 )
 
 

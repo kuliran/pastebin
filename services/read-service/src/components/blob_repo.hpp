@@ -1,30 +1,26 @@
 #pragma once
 
-#include "models/paste_blob.hpp"
-
 #include <userver/components/component_base.hpp>
 #include <userver/utils/expected.hpp>
-#include <userver/storages/mongo/pool.hpp>
+
+#include <aws/s3/S3Client.h>
 
 namespace read_service {
 
-enum class GetPasteBlobError {
-    kNotFound,
-    kDbError,
-    kInvalidData,
-};
-
-class BlobRepo : public userver::components::LoggableComponentBase {
+class BlobRepo final : public userver::components::ComponentBase {
 public:
     static constexpr std::string_view kName = "blob-repo";
 
-    BlobRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
+    BlobRepo(const userver::components::ComponentConfig&,
+                 const userver::components::ComponentContext&);
 
-    userver::utils::expected<PasteBlob, GetPasteBlobError> GetPasteBlob(const std::string_view& id) const;
+    std::string CreatePresignedGet(std::string_view paste_id, std::chrono::seconds ttl);
+
+    static userver::yaml_config::Schema GetStaticConfigSchema();
+
 private:
-    static constexpr std::string_view kDefaultMongoComponent = "mongo-db-1";
-
-    userver::storages::mongo::PoolPtr mongo_pool_;
+    std::shared_ptr<Aws::S3::S3Client> aws_client_;
+    std::string bucket_;
 };
 
 }

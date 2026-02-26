@@ -14,19 +14,25 @@ GetPaste::GetPaste(
 {}
 
 formats::json::Value GetPaste::
-    HandleRequestJsonThrow(const HttpRequest& request, const Value&, RequestContext&)
+    HandleRequestJsonThrow(const HttpRequest& request, const Value&, RequestContext& ctx)
         const {
     using userver::server::http::HttpStatus;
     using namespace read_service::dto;
 
     const auto& id = request.GetPathArg("id");
+    const std::string& user_id = ctx.GetData<std::string>("user_id");
 
     auto span = tracing::Span::CurrentSpan().CreateChild("get_paste_http");
+    span.AddTag("user_id", user_id);
     span.AddTag("paste_id", std::string(id));
 
-    auto result = read_service_.GetPaste(id);
+    auto result = read_service_.GetPaste(id, user_id);
     if (!result) {
         switch (result.error()) {
+            case GetPasteError::kUnauthorized: {
+                request.SetResponseStatus(HttpStatus::kForbidden);
+                return {};
+            }
             case GetPasteError::kSoftExpired:
             case GetPasteError::kNotExists: {
                 request.SetResponseStatus(HttpStatus::NotFound);

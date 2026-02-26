@@ -11,10 +11,10 @@ inline userver::formats::json::Value Serialize(
     userver::formats::serialize::To<userver::formats::json::Value>
 ) {
     userver::formats::json::ValueBuilder b;
+    b["presigned_url"] = p.presigned_url;
     b["created_at"] = p.created_at;
     b["expires_at"] = p.expires_at;
     b["size_bytes"] = p.size_bytes;
-    b["text"] = p.text;
     return b.ExtractValue();
 }
 

@@ -8,18 +8,19 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
-#include <userver/storages/secdist/provider_component.hpp>
-#include <userver/storages/mongo/component.hpp>    
 #include <userver/storages/postgres/component.hpp> 
 
 #include <userver/utils/daemon_run.hpp>
 
+#include "jwt/auth_checker_http.hpp"
+#include "aws/aws_sdk_component.hpp"
 #include "services/read_service.hpp"
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
 #include "handlers/get_paste.hpp"
 
 int main(int argc, char* argv[]) {
+    userver::server::handlers::auth::RegisterAuthCheckerFactory<jwt_wrapper::JwtCheckerFactory>();
     auto component_list =
         userver::components::MinimalServerComponentList()
             .Append<userver::server::handlers::Ping>()
@@ -29,8 +30,9 @@ int main(int argc, char* argv[]) {
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
             .Append<userver::components::Postgres>("postgres-db-1")
-            .Append<userver::components::Mongo>("mongo-db-1")
-
+            .Append<jwt_wrapper::JwtVerifierComponent>()
+            .Append<Aws::AwsSdkComponent>()
+            
             .Append<read_service::ReadService>()
             .Append<read_service::MetadataRepo>()
             .Append<read_service::BlobRepo>()
