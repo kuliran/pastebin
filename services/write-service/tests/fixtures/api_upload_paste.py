@@ -14,6 +14,7 @@ class UploadCreateUrlResult:
 @dataclass
 class UploadS3Result:
     text: str
+    version_id: str
     size_bytes: int
 
 @dataclass
@@ -26,6 +27,7 @@ class UploadSubmitResult:
 class UploadFullResult:
     paste_id: str
     presigned_url: str
+    version_id: str
     text: str
     created_at_utc: datetime
     expires_at_utc: datetime
@@ -103,8 +105,12 @@ async def s3_upload(minio_server):
         )
         assert upload_response.status_code == 200
 
+        version_id = upload_response.headers.get("x-amz-version-id")
+        assert version_id
+
         return UploadS3Result(
             text=data,
+            version_id=version_id,
             size_bytes=len(data),
         )
     return impl
@@ -161,6 +167,7 @@ async def api_upload_full(api_upload_create_url, api_upload_submit, s3_upload, a
         return UploadFullResult(
             paste_id=create_url_res.paste_id,
             presigned_url=create_url_res.presigned_url,
+            version_id=s3_upload_res.version_id,
             text=s3_upload_res.text,
             created_at_utc=submit_res.created_at_utc,
             expires_at_utc=submit_res.expires_at_utc,

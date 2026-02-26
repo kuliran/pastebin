@@ -12,21 +12,23 @@ class GetPasteResult:
 
 @pytest.fixture
 def raw_get_paste(pg_cursor, minio_server) -> GetPasteResult:
-    async def _get(paste_id: str):
+    async def _get(paste_id: str, *, expect_version_id: str = None):
         pg_cursor.execute("""
-            SELECT created_at, expires_at, size_bytes
+            SELECT created_at, expires_at, size_bytes, s3_version_id
             FROM pastes.metadata
             WHERE id = %s
         """, (paste_id,))
-        created_at, expires_at, size_bytes = pg_cursor.fetchone()
+        created_at, expires_at, size_bytes, pg_s3_version_id = pg_cursor.fetchone()
         assert created_at is not None
+        if expect_version_id is not None:
+            assert pg_s3_version_id == expect_version_id
 
         key = 'pending/' + paste_id
 
         s3 = minio_server["client"]
-        response = s3.get_object(Bucket=minio_server['bucket'], Key=key)
+        response = s3.get_object(Bucket=minio_server['bucket'], Key=key, VersionId=pg_s3_version_id)
         content = response["Body"].read()
-        head = s3.head_object(Bucket=minio_server['bucket'], Key=key)
+        head = s3.head_object(Bucket=minio_server['bucket'], Key=key, VersionId=pg_s3_version_id)
         version_id = head["VersionId"]
         assert size_bytes == head["ContentLength"]
 

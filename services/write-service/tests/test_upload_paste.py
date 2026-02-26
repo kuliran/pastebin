@@ -93,7 +93,7 @@ async def test_lifetimes(api_upload_full):
 async def upload_and_get_paste(api_upload_full, raw_get_paste, auth_client):
     async def _upload(paste_text: str, *, client: auth.Client = auth_client) -> UploadFullResult:
         upload_res = await api_upload_full(paste_text, client=client)
-        get_res = await raw_get_paste(upload_res.paste_id)
+        get_res = await raw_get_paste(upload_res.paste_id, expect_version_id=upload_res.version_id)
         assert_upload_and_get_results(upload_res, get_res, paste_text)
 
         return upload_res
