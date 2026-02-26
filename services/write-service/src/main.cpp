@@ -8,7 +8,6 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/storages/postgres/component.hpp> 
 #include <userver/utils/daemon_run.hpp>
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
