@@ -1,0 +1,10 @@
+vptr:AWSClientAsyncCRTP.h
+function:alg_copy
+function:collect_keymgmt
+function:ossl_decoder_instance_dup
+function:RSA_free
+function:aws_byte_cursor_eq
+function:d2i_X509
+function:X509_NAME_ENTRY_free
+function:x509_object_cmp
+function:SHA256_Update
