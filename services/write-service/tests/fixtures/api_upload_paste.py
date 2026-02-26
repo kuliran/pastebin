@@ -13,7 +13,7 @@ class UploadCreateUrlResult:
 
 @dataclass
 class UploadS3Result:
-    text: str
+    data: bytes
     version_id: str
     size_bytes: int
 
@@ -24,11 +24,11 @@ class UploadSubmitResult:
     size_bytes: int
 
 @dataclass
-class UploadFullResult:
+class UploadPasteResult:
     paste_id: str
     presigned_url: str
     version_id: str
-    text: str
+    data: str
     created_at_utc: datetime
     expires_at_utc: datetime
     size_bytes: int
@@ -109,7 +109,7 @@ async def s3_upload(minio_server):
         assert version_id
 
         return UploadS3Result(
-            text=data,
+            data=data,
             version_id=version_id,
             size_bytes=len(data),
         )
@@ -153,8 +153,8 @@ async def api_upload_submit_raw(endpoints, auth_client):
 
 
 @pytest.fixture
-async def api_upload_full(api_upload_create_url, api_upload_submit, s3_upload, auth_client):
-    async def impl(text: str, expires_in: str = None, *, client: auth.Client = auth_client) -> UploadFullResult:
+async def api_upload_paste(api_upload_create_url, api_upload_submit, s3_upload, auth_client):
+    async def impl(text: str, expires_in: str = None, *, client: auth.Client = auth_client) -> UploadPasteResult:
         # Preparation
         create_url_res = await api_upload_create_url(expires_in, client=client)
         s3_upload_res = await s3_upload(create_url_res.presigned_url, text)
@@ -164,11 +164,11 @@ async def api_upload_full(api_upload_create_url, api_upload_submit, s3_upload, a
         assert create_url_res.created_at_utc == submit_res.created_at_utc
         assert create_url_res.expires_at_utc == submit_res.expires_at_utc
 
-        return UploadFullResult(
+        return UploadPasteResult(
             paste_id=create_url_res.paste_id,
             presigned_url=create_url_res.presigned_url,
             version_id=s3_upload_res.version_id,
-            text=s3_upload_res.text,
+            data=s3_upload_res.data,
             created_at_utc=submit_res.created_at_utc,
             expires_at_utc=submit_res.expires_at_utc,
             size_bytes=s3_upload_res.size_bytes

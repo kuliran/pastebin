@@ -1,15 +1,15 @@
 # Start the tests via `make test-debug` or `make test-release`
 
 import pytest
-from fixtures.api_upload_paste import UploadFullResult
+from fixtures.api_upload_paste import UploadPasteResult
 import shared.utils.auth as auth
 
 # =========================================
 # ================= TESTS =================
 # =========================================
-async def test_basic(api_upload_full):
+async def test_basic(api_upload_paste):
     paste_text = 'Hello, world!'
-    await api_upload_full(paste_text)
+    await api_upload_paste(paste_text)
 
 async def test_upload_twice_overwrite_and_get(api_upload_create_url, s3_upload, api_upload_submit, api_upload_create_url_raw, raw_get_paste):
     paste_text = 'Hello, world!'
@@ -20,10 +20,10 @@ async def test_upload_twice_overwrite_and_get(api_upload_create_url, s3_upload, 
     await api_upload_submit(create_url_res.paste_id)
 
     get = await raw_get_paste(create_url_res.paste_id)
-    assert get.text == second_upload.text
+    assert get.data == second_upload.data
 
 async def test_create_url_limit(api_upload_create_url, s3_upload, api_upload_submit,
-    api_upload_create_url_raw, api_upload_full, new_auth_client, service_static_config
+    api_upload_create_url_raw, api_upload_paste, new_auth_client, service_static_config
 ):
     paste_text = 'Hello, world!'
 
@@ -41,15 +41,15 @@ async def test_create_url_limit(api_upload_create_url, s3_upload, api_upload_sub
     res = await api_upload_create_url_raw()
     assert res.status == 429
 
-    await api_upload_full(paste_text, client=diff_client)
+    await api_upload_paste(paste_text, client=diff_client)
 
-async def test_utf8(api_upload_full):
+async def test_utf8(api_upload_paste):
     paste_text = 'Привет мир! 🌍 こんにちは'
-    await api_upload_full(paste_text)
+    await api_upload_paste(paste_text)
 
-async def test_max_size(api_upload_full):
+async def test_max_size(api_upload_paste):
     paste_text = "a" * (1024*1024)
-    await api_upload_full(paste_text, '1_week')
+    await api_upload_paste(paste_text, '1_week')
 
 async def test_too_large(api_upload_create_url, s3_upload, api_upload_submit_raw):
     paste_text = "a" * (1024*1024+1)
@@ -67,32 +67,32 @@ async def test_upload_and_get_utf8(upload_and_get_paste):
     paste_text = 'Привет мир! 🌍 こんにちは'
     await upload_and_get_paste(paste_text)
 
-async def test_upload_k_and_get(api_upload_full, raw_get_paste):
+async def test_upload_k_and_get(api_upload_paste, raw_get_paste):
     ## Test that uploading a new paste doesn't spoil data of other pastes
     paste_texts = ['Hello, world!', 'Some different text']
 
     upload_results = []
     for x in range(0, len(paste_texts)):
-        upload_results.append(await api_upload_full(paste_texts[x]))
+        upload_results.append(await api_upload_paste(paste_texts[x]))
         
     for x in range(0, len(paste_texts)):
         get = await raw_get_paste(upload_results[x].paste_id)
         assert_upload_and_get_results(upload_results[x], get, paste_texts[x])
 
-async def test_lifetimes(api_upload_full):
+async def test_lifetimes(api_upload_paste):
     paste_text = 'Hello, world!'
     lifetimes = [None, '1_hour', '1_day', '1_week', '1_month', '3_month']
 
     for x in lifetimes:
-        await api_upload_full(paste_text, x)
+        await api_upload_paste(paste_text, x)
 
 # =========================================
 # ============= LOCAL FIXTURES ============
 # =========================================
 @pytest.fixture
-async def upload_and_get_paste(api_upload_full, raw_get_paste, auth_client):
-    async def _upload(paste_text: str, *, client: auth.Client = auth_client) -> UploadFullResult:
-        upload_res = await api_upload_full(paste_text, client=client)
+async def upload_and_get_paste(api_upload_paste, raw_get_paste, auth_client):
+    async def _upload(paste_text: str, *, client: auth.Client = auth_client) -> UploadPasteResult:
+        upload_res = await api_upload_paste(paste_text, client=client)
         get_res = await raw_get_paste(upload_res.paste_id, expect_version_id=upload_res.version_id)
         assert_upload_and_get_results(upload_res, get_res, paste_text)
 
@@ -102,5 +102,5 @@ async def upload_and_get_paste(api_upload_full, raw_get_paste, auth_client):
 def assert_upload_and_get_results(upload_result, get_response, paste_text):
     assert get_response.created_at_utc == upload_result.created_at_utc
     assert get_response.expires_at_utc == upload_result.expires_at_utc
-    assert get_response.size_bytes == len(upload_result.text)
-    assert get_response.text == paste_text.encode("utf-8")
+    assert get_response.size_bytes == upload_result.size_bytes
+    assert get_response.data == paste_text.encode("utf-8")

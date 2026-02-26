@@ -4,7 +4,7 @@ from datetime import datetime
 
 @dataclass
 class GetPasteResult:
-    text: str
+    data: str
     version_id: str
     size_bytes: int
     created_at_utc: datetime
@@ -27,13 +27,13 @@ def raw_get_paste(pg_cursor, minio_server) -> GetPasteResult:
 
         s3 = minio_server["client"]
         response = s3.get_object(Bucket=minio_server['bucket'], Key=key, VersionId=pg_s3_version_id)
-        content = response["Body"].read()
+        data = response["Body"].read()
         head = s3.head_object(Bucket=minio_server['bucket'], Key=key, VersionId=pg_s3_version_id)
         version_id = head["VersionId"]
         assert size_bytes == head["ContentLength"]
 
         return GetPasteResult(
-            text=content,
+            data=data,
             version_id=version_id,
             size_bytes=size_bytes,
             created_at_utc=created_at,

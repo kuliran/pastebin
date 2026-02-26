@@ -1,6 +1,7 @@
 import pytest
 from dataclasses import dataclass
 from datetime import datetime
+import shared.utils.auth as auth
 
 @dataclass
 class RawInsertResult:
@@ -16,18 +17,19 @@ def raw_insert_paste(pg_cursor, minio_server, auth_client):
         paste_id: str,
         paste_text: str,
         expires_in: str = '24 hours',
-        owner_user_id: str = auth_client._user_id
+        *,
+        client: auth.Client = auth_client
     ) -> RawInsertResult:
         s3 = minio_server["client"]
-        content = paste_text.encode("utf-8")
+        data = paste_text.encode("utf-8")
 
         response = s3.put_object(
             Bucket=minio_server["bucket"],
             Key=f"submitted/{paste_id}",
-            Body=content,
+            Body=data,
         )
         version_id = response["VersionId"]
-        size_bytes = len(content)
+        size_bytes = len(data)
 
         pg_cursor.execute(
             """
@@ -35,7 +37,7 @@ def raw_insert_paste(pg_cursor, minio_server, auth_client):
             VALUES (%s, %s, 'submitted', %s, %s, NOW(), NOW() + %s::interval)
             RETURNING created_at, expires_at
             """,
-            (paste_id, owner_user_id, version_id, size_bytes, expires_in)
+            (paste_id, client._user_id, version_id, size_bytes, expires_in)
         )
         pg_created_at, pg_expires_at = pg_cursor.fetchone()
 
