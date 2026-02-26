@@ -1,6 +1,6 @@
 import pytest
 from shared.fixtures.raw_insert_paste import RawInsertResult
-import shared.utils.auth as auth
+from shared.utils.client import Client
 
 # =========================================
 # ================= TESTS =================
@@ -29,7 +29,7 @@ async def test_expired(api_get_paste_expect_none, raw_insert_paste):
 # =========================================
 @pytest.fixture
 async def raw_insert_and_get(api_get_paste, raw_insert_paste, auth_client):
-    async def _insert_and_get(paste_text: str, *, client: auth.Client = auth_client) -> RawInsertResult:
+    async def _insert_and_get(paste_text: str, *, client: Client = auth_client) -> RawInsertResult:
         paste_id = "abc123"
 
         raw_insert_res = await raw_insert_paste(paste_id, paste_text, client=client)

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from dateutil.parser import isoparse
 from shared.fixtures.raw_get_paste import GetPasteResult
 from datetime import datetime
-import shared.utils.auth as auth
+from shared.utils.client import Client
 
 @dataclass
 class GetPasteUrlResult:
@@ -14,7 +14,7 @@ class GetPasteUrlResult:
 
 @pytest.fixture
 async def api_get_paste_url(auth_client, endpoints) -> GetPasteUrlResult:
-    async def _get(paste_id: str, *, client: auth.Client = auth_client):
+    async def _get(paste_id: str, *, client: Client = auth_client):
         response = await client.get(endpoints['get_paste_presigned_url'] + f'/{paste_id}')
         assert response.status == 200
         assert 'application/json' in response.headers['Content-Type']
@@ -47,7 +47,7 @@ async def s3_get(minio_server) -> bytes:
 
 @pytest.fixture
 async def api_get_paste(api_get_paste_url, s3_get, auth_client):
-    async def _get(paste_id: str, *, client: auth.Client = auth_client) -> GetPasteResult:
+    async def _get(paste_id: str, *, client: Client = auth_client) -> GetPasteResult:
         response = await api_get_paste_url(paste_id, client=client)
         data = await s3_get(paste_id)
         return GetPasteResult(
@@ -60,7 +60,7 @@ async def api_get_paste(api_get_paste_url, s3_get, auth_client):
 
 @pytest.fixture
 async def api_get_paste_expect_none(auth_client, endpoints):
-    async def _get(paste_id: str, *, client: auth.Client = auth_client):
+    async def _get(paste_id: str, *, client: Client = auth_client):
         response = await client.get(endpoints['get_paste_presigned_url'] + f'/{paste_id}')
         assert response.status == 404
         assert 'application/json' in response.headers['Content-Type']

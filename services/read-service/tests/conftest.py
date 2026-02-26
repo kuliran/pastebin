@@ -7,12 +7,12 @@ pytest_plugins = [
     'pytest_userver.plugins.core',
     'pytest_userver.plugins.postgresql', 
     'pytest_userver.plugins.s3api',
-    'fixtures.api_get_paste',
     'shared.fixtures.endpoints',
     'shared.fixtures.make_minio',
     'shared.fixtures.make_pgsql',
-    'shared.fixtures.raw_insert_paste',
     'shared.fixtures.auth',
+    'shared.fixtures.raw_insert_paste',
+    'shared.fixtures.api_get_paste',
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent
