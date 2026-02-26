@@ -1,8 +1,8 @@
 # Start the tests via `make test-debug` or `make test-release`
 
 import pytest
-from fixtures.api_upload_paste import UploadPasteResult
-import shared.utils.auth as auth
+from shared.fixtures.api_upload_paste import UploadPasteResult
+from shared.utils.client import Client
 
 # =========================================
 # ================= TESTS =================
@@ -11,7 +11,7 @@ async def test_basic(api_upload_paste):
     paste_text = 'Hello, world!'
     await api_upload_paste(paste_text)
 
-async def test_upload_twice_overwrite_and_get(api_upload_create_url, s3_upload, api_upload_submit, api_upload_create_url_raw, raw_get_paste):
+async def test_upload_twice_overwrite_and_get(api_upload_create_url, s3_upload, api_upload_submit, raw_get_paste):
     paste_text = 'Hello, world!'
 
     create_url_res = await api_upload_create_url()
@@ -91,7 +91,7 @@ async def test_lifetimes(api_upload_paste):
 # =========================================
 @pytest.fixture
 async def upload_and_get_paste(api_upload_paste, raw_get_paste, auth_client):
-    async def _upload(paste_text: str, *, client: auth.Client = auth_client) -> UploadPasteResult:
+    async def _upload(paste_text: str, *, client: Client = auth_client) -> UploadPasteResult:
         upload_res = await api_upload_paste(paste_text, client=client)
         get_res = await raw_get_paste(upload_res.paste_id, expect_version_id=upload_res.version_id)
         assert_upload_and_get_results(upload_res, get_res, paste_text)

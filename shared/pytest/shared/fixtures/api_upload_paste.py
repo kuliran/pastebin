@@ -2,7 +2,7 @@ import pytest
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from urllib.parse import urlparse
-import shared.utils.auth as auth
+from shared.utils.client import Client
 
 @dataclass
 class UploadCreateUrlResult:
@@ -36,7 +36,7 @@ class UploadPasteResult:
 
 @pytest.fixture
 async def api_upload_create_url(pg_cursor, auth_client, api_upload_create_url_raw):
-    async def impl(expires_in: str = None, *, client: auth.Client = auth_client) -> UploadCreateUrlResult:
+    async def impl(expires_in: str = None, *, client: Client = auth_client) -> UploadCreateUrlResult:
         now_utc = datetime.now(timezone.utc)
 
         response = await api_upload_create_url_raw(expires_in, client=client)
@@ -84,7 +84,7 @@ async def api_upload_create_url(pg_cursor, auth_client, api_upload_create_url_ra
 
 @pytest.fixture
 async def api_upload_create_url_raw(endpoints, auth_client):
-    async def impl(expires_in: str = None, *, client: auth.Client = auth_client):
+    async def impl(expires_in: str = None, *, client: Client = auth_client):
         request_json = {}
         if expires_in is not None:
             request_json["expires_in"] = expires_in
@@ -118,7 +118,7 @@ async def s3_upload():
 
 @pytest.fixture
 async def api_upload_submit(pg_cursor, api_upload_submit_raw, auth_client):
-    async def impl(paste_id: str, *, client: auth.Client = auth_client) -> UploadSubmitResult:
+    async def impl(paste_id: str, *, client: Client = auth_client) -> UploadSubmitResult:
         response = await api_upload_submit_raw(paste_id, client=client)
         assert response.status == 200
         assert 'application/json' in response.headers['Content-Type']
@@ -145,7 +145,7 @@ async def api_upload_submit(pg_cursor, api_upload_submit_raw, auth_client):
 
 @pytest.fixture
 async def api_upload_submit_raw(endpoints, auth_client):
-    async def impl(paste_id: str, *, client: auth.Client = auth_client):
+    async def impl(paste_id: str, *, client: Client = auth_client):
         request_json = {}
         request_json["paste_id"] = paste_id
         return await client.post(endpoints['upload_paste_submit'], json=request_json)
@@ -154,7 +154,7 @@ async def api_upload_submit_raw(endpoints, auth_client):
 
 @pytest.fixture
 async def api_upload_paste(api_upload_create_url, api_upload_submit, s3_upload, auth_client):
-    async def impl(text: str, expires_in: str = None, *, client: auth.Client = auth_client) -> UploadPasteResult:
+    async def impl(text: str, expires_in: str = None, *, client: Client = auth_client) -> UploadPasteResult:
         # Preparation
         create_url_res = await api_upload_create_url(expires_in, client=client)
         s3_upload_res = await s3_upload(create_url_res.presigned_url, text)
