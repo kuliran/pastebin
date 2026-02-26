@@ -36,8 +36,6 @@ components_manager:
             access_key: $s3-access-key
             secret_key: $s3-secret-key
             region: us-east-1  # doesn't matter for MinIO but is mandatory
-            # s3-client: s3-client
-        aws-sdk:
         metadata-repo:
             upload_rate_limit_window_duration_s: 7200 # 2 hours
             upload_rate_limit_submit_max: 5
@@ -49,6 +47,7 @@ components_manager:
             batch_size_expired: 40
             batch_size_deleted: 40
         write-service:
+        aws-sdk:
         jwt-verifier:
             public-key-path: /run/secrets/public.pem
 
@@ -101,9 +100,3 @@ components_manager:
             dns_resolver: async
             sync-start: true
             connlimit_mode: manual
-
-        # s3-client:
-        #     endpoint: $s3-endpoint
-        #     access-key: $s3-access-key
-        #     secret-key: $s3-secret-key
-        #     region: us-east-1  # doesn't matter for MinIO but is mandatory

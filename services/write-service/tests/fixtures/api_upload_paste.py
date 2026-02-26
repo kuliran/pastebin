@@ -83,7 +83,7 @@ async def api_upload_create_url(pg_cursor, auth_client, api_upload_create_url_ra
     return impl
 
 @pytest.fixture
-async def api_upload_create_url_raw(pg_cursor, endpoints, auth_client):
+async def api_upload_create_url_raw(endpoints, auth_client):
     async def impl(expires_in: str = None, *, client: auth.Client = auth_client):
         request_json = {}
         if expires_in is not None:
@@ -92,8 +92,8 @@ async def api_upload_create_url_raw(pg_cursor, endpoints, auth_client):
     return impl
 
 
-@pytest.fixture
-async def s3_upload(minio_server):
+@pytest.fixture(scope='session')
+async def s3_upload():
     async def impl(presigned_url: str, text: str) -> UploadS3Result:
         data = text.encode("utf-8")
 

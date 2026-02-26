@@ -35,8 +35,8 @@ int main(int argc, char* argv[]) {
             .Append<userver::congestion_control::Component>()
             .Append<userver::components::Postgres>("postgres-db-1")
             .Append<jwt_wrapper::JwtVerifierComponent>()
-
             .Append<Aws::AwsSdkComponent>()
+            
             .Append<write_service::WriteService>()
             .Append<write_service::MetadataRepo>()
             .Append<write_service::CachePurger>()

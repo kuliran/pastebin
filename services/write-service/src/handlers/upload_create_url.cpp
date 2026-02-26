@@ -47,7 +47,7 @@ formats::json::Value UploadCreateUrl::
 
     const std::string& user_id = ctx.GetData<std::string>("user_id");
 
-    auto span = tracing::Span::CurrentSpan().CreateChild("upload_paste_http");
+    auto span = tracing::Span::CurrentSpan().CreateChild("upload_create_url_http");
     span.AddTag("user_id", user_id);
 
     auto result = write_service_.CreateUploadPresignedUrl(user_id, lifetime);
