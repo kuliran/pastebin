@@ -14,6 +14,8 @@ services:
       - ./.vcpkg/installed:/opt/vcpkg_installed:rw
     environment:
       POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
+      VCPKG_ROOT: /opt/vcpkg
+      VCPKG_MANIFEST_DIR: /app/vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: /opt/vcpkg_cache
       VCPKG_INSTALLED_DIR: /opt/vcpkg_installed
     command: sleep infinity
