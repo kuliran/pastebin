@@ -41,6 +41,6 @@
   },
   "mounts": [],
   "onCreateCommand": "git config --global --add safe.directory /app",
-  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postCreateCommand": "bash vcpkg/vcpkg_setup.sh",
   "workspaceFolder": "/app"
 }

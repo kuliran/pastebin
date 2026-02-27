@@ -7,7 +7,6 @@ REPO_ROOT ?= $$PWD/../../
 DOCKERFILE ?= $(REPO_ROOT)/.devcontainer/Dockerfile.dev
 DOCKER_ENV ?=
 DOCKER_EXTRA_OPTS ?=
-DOCKER_EXTRA_ENV ?=
 # If we're under TTY, pass "-it" to "docker run"
 DOCKER_ARGS = $(shell /bin/test -t 0 && /bin/echo -it || echo)
 PRESETS ?= debug release debug-custom release-custom
@@ -76,6 +75,13 @@ docker-build-image:
 # The docker mounts the whole service's source directory,
 # so you can do some stuff as you wish, switch back to host (non-docker) system
 # and still able to access the results.
+DOCKER_ENV_VARS = \
+    CCACHE_DIR=/app/.ccache \
+    HOME=$$HOME \
+    VCPKG_DEFAULT_BINARY_CACHE=/opt/vcpkg_cache \
+    VCPKG_INSTALLED_DIR=/opt/vcpkg_installed \
+    $(DOCKER_ENV)
+
 .PHONY: $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(addprefix docker-test-, $(PRESETS)) $(addprefix docker-clean-, $(PRESETS))
 $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(addprefix docker-test-, $(PRESETS)) $(addprefix docker-clean-, $(PRESETS)): docker-%: | docker-build-image
 	docker run $(DOCKER_ARGS) \
@@ -86,7 +92,5 @@ $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(
 		--rm \
 		$(DOCKER_EXTRA_OPTS) \
 		$(DOCKER_IMAGE) \
-		env CCACHE_DIR=/app/.ccache \
-		    HOME=$$HOME \
-			$(DOCKER_EXTRA_ENV) \
-		    /app/shared/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) make $*
+		env $(DOCKER_ENV_VARS) \
+			bash /app/shared/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) make $*

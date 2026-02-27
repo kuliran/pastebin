@@ -10,8 +10,8 @@ services:
     volumes:
       - .:/app:rw
       - ./shared/keys/dev:/run/secrets:ro
-      - ./.vcpkg/cache:/opt/vcpkg_cache/
-      - ./.vcpkg/installed:/opt/vcpkg_installed
+      - ./.vcpkg/cache:/opt/vcpkg_cache/:rw
+      - ./.vcpkg/installed:/opt/vcpkg_installed:rw
     environment:
       POSTGRES_CONNECTION: ${POSTGRES_CONNECTION}
       VCPKG_DEFAULT_BINARY_CACHE: /opt/vcpkg_cache

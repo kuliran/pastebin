@@ -8,6 +8,8 @@ export VCPKG_FORCE_SYSTEM_BINARIES=1
 export CC=clang
 export CXX=clang++
 
+cd /app
+
 mkdir -p $VCPKG_DEFAULT_BINARY_CACHE
 mkdir -p $VCPKG_INSTALLED_DIR
 sudo chown -R $(id -u):$(id -g) .vcpkg/
