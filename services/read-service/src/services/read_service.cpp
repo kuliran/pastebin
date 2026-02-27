@@ -30,7 +30,7 @@ utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string
         }
     }
 
-    auto presigned_url = blob_repo_.CreatePresignedGet(user_id, kPresignedGetUrlTtl);
+    auto presigned_url = blob_repo_.CreatePresignedGet(id, kPresignedGetUrlTtl);
     return GetPasteResult(std::move(metadata.value()), std::move(presigned_url));
 }
 

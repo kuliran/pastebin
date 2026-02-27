@@ -31,7 +31,7 @@ components_manager:
                     statement_timeout_ms: 500
 
         blob-repo:
-            endpoint: $s3-endpoint
+            public_endpoint: $s3-public-endpoint
             bucket: pastes
             access_key: $s3-access-key
             secret_key: $s3-secret-key
