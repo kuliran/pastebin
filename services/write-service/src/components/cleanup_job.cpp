@@ -20,7 +20,11 @@ CleanupJob::CleanupJob(const components::ComponentConfig& config,
     , batch_size_deleted_(config["batch_size_deleted"].As<int32_t>(50))
 {
     const auto interval = std::chrono::seconds{config["interval_s"].As<int>(120)};
-    task_.Start("cleanup_job", {interval}, [this] { Run(); });
+    task_.Start(kTaskName, {interval}, [this] { Run(); });
+
+    if (auto* testsuite = ctx.FindComponentOptional<userver::components::TestsuiteSupport>()) {
+        periodic_task_holder_.emplace(testsuite->GetPeriodicTaskControl(), kTaskName, task_);
+    }
 }
 
 CleanupJob::~CleanupJob() {
@@ -45,8 +49,11 @@ void CleanupJob::CleanupDeleted() {
     auto result = pg_->Execute(
         storages::postgres::ClusterHostType::kMaster,
         "DELETE FROM pastes.metadata "
-        "WHERE status = 'deleted' "
-        "LIMIT $1 "
+        "WHERE id IN ( "
+        "   SELECT id FROM pastes.metadata "
+        "   WHERE status = 'deleted' "
+        "   LIMIT $1 "
+        ") "
         "RETURNING id, s3_version_id",
         batch_size_deleted_
     );
@@ -56,7 +63,7 @@ void CleanupJob::CleanupDeleted() {
 
     for (const auto& row : result) {
         auto paste_id = row["id"].As<std::string>();
-        auto version_id = row["s3_version_id"].As<std::optional<std::string>>();
+        auto version_id = row["s3_version_id"].As<std::string>();
 
         auto delete_result = userver::utils::Async("cleanup_s3_delete", [this, &paste_id, &version_id] {
             return blob_repo_.DeletePasteBlobBlocking("submitted/" + paste_id, version_id);
@@ -72,8 +79,11 @@ void CleanupJob::CleanupExpired() {
     auto result = pg_->Execute(
         storages::postgres::ClusterHostType::kMaster,
         "DELETE FROM pastes.metadata "
-        "WHERE status = 'submitted' AND expires_at < NOW() "
-        "LIMIT $1 "
+        "WHERE id IN ( "
+        "   SELECT id FROM pastes.metadata "
+        "   WHERE status = 'submitted' AND expires_at < NOW() "
+        "   LIMIT $1 "
+        ") "
         "RETURNING id, s3_version_id",
         batch_size_expired_
     );
