@@ -16,4 +16,3 @@ sudo chown -R $(id -u):$(id -g) $REPO_ROOT/vcpkg/
 
 echo "copying from $REPO_ROOT/vcpkg/triplets"
 cp $REPO_ROOT/vcpkg/triplets/* $VCPKG_ROOT/triplets/
-$VCPKG_ROOT/vcpkg help triplet

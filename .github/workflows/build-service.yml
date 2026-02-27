@@ -75,7 +75,6 @@ jobs:
             /opt/vcpkg/bootstrap-vcpkg.sh
           fi
           bash vcpkg/vcpkg_setup.sh $(pwd)
-          /opt/vcpkg/vcpkg install --triplet=x64-linux-asan
 
       - name: Build
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}build-${{ inputs.build-type }}
@@ -84,8 +83,12 @@ jobs:
       - name: Test
         if: inputs.run-tests && inputs.build-type == 'debug'
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}test-${{ inputs.build-type }} \
-          DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined" \
-          DOCKER_ENV="UBSAN_OPTIONS='print_stacktrace=1'  "
+          DOCKER_EXTRA_OPTS=" \
+            --security-opt seccomp=unconfined \
+            -v $VCPKG_DEFAULT_BINARY_CACHE:/opt/vcpkg_cache/:rw \
+      	    -v $VCPKG_INSTALLED_DIR:/opt/vcpkg_installed:rw \
+          " \
+          DOCKER_ENV="UBSAN_OPTIONS='print_stacktrace=1'"
           # --security-opt runs container in privileged mode
           # because otherwise StackUsageMonitor causes userver to SIGABRT in debug builds
         working-directory: services/${{ inputs.service-name }}
