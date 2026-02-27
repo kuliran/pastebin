@@ -41,9 +41,6 @@ components_manager:
             upload_rate_limit_window_duration_s: 7200 # 2 hours
             upload_rate_limit_submit_max: 5
             upload_rate_limit_create_url_max: 10
-        cache-purger: # purges nginx cache on paste DELETE
-            load-enabled: $cache-purge-enabled # disabled in non-e2e tests
-            endpoint: http://nginx/purge/api/v2/
         cleanup-job:
             interval_s: 120
             batch_size_expired: 40

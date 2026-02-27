@@ -1,7 +1,9 @@
 #include "components/cache_purger.hpp"
 
 #include <userver/components/component_context.hpp>
+#include <userver/components/component.hpp>
 #include <userver/clients/http/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
 
@@ -11,14 +13,15 @@ namespace write_service {
 
 CachePurger::CachePurger(const components::ComponentConfig& config, const components::ComponentContext& component_context)
     : components::LoggableComponentBase(config, component_context)
-    , http_client_(component_context.FindComponent<userver::components::HttpClient>().GetHttpClient()) {
+    , http_client_(component_context.FindComponent<userver::components::HttpClient>().GetHttpClient())
+    , nginx_endpoint_(config["endpoint"].As<std::string>()) {
 
-    LOG_INFO() << "Cache purger initialized, nginx url: " << kNginxUrl;
+    LOG_INFO() << "Cache purger initialized, nginx url: " << nginx_endpoint_;
 }
 
 void CachePurger::PurgePaste(const std::string_view& paste_id) const {
     try {
-        const std::string url = std::string(kNginxUrl) + std::string(paste_id);
+        const std::string url = nginx_endpoint_ + std::string(paste_id);
 
         LOG_INFO() << "Purging cache paste_id=" << paste_id 
                    << " url=" << url;
@@ -43,6 +46,18 @@ void CachePurger::PurgePaste(const std::string_view& paste_id) const {
         LOG_ERROR() << "Cache purge error paste_id=" << paste_id 
                     << " error=" << e.what();
     }
+}
+
+userver::yaml_config::Schema CachePurger::GetStaticConfigSchema() {
+    return userver::yaml_config::MergeSchemas<ComponentBase>(R"(
+        type: object
+        description: Purges reverse-proxy cache upon request
+        additionalProperties: false
+        properties:
+            endpoint:
+                type: string
+                description: Reverse-proxy cache endpoint URL
+    )");
 }
 
 }

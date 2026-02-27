@@ -18,7 +18,6 @@
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
 #include "components/cleanup_job.hpp"
-#include "components/cache_purger.hpp"
 #include "handlers/upload_create_url.hpp"
 #include "handlers/upload_submit.hpp"
 #include "handlers/delete_paste.hpp"
@@ -39,7 +38,6 @@ int main(int argc, char* argv[]) {
             
             .Append<write_service::WriteService>()
             .Append<write_service::MetadataRepo>()
-            .Append<write_service::CachePurger>()
             .Append<write_service::BlobRepo>()
             .Append<write_service::CleanupJob>()
             .Append<write_service::UploadCreateUrl>()

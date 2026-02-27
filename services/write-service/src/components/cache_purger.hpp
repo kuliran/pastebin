@@ -1,3 +1,5 @@
+// No longer used in v2, but is left here in case of a migration to CDN
+
 #pragma once
 
 #include <userver/components/component_base.hpp>
@@ -12,10 +14,11 @@ public:
     CachePurger(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     void PurgePaste(const std::string_view& id) const;
-private:
-    static constexpr std::string_view kNginxUrl = "http://nginx/purge/api/v1/";
 
+    static userver::yaml_config::Schema GetStaticConfigSchema();
+private:
     userver::clients::http::Client& http_client_;
+    std::string nginx_endpoint_;
 };
 
 }

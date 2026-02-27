@@ -28,7 +28,6 @@ WriteService::WriteService(const components::ComponentConfig& config, const comp
     : components::LoggableComponentBase(config, component_context)
     , metadata_repo_(component_context.FindComponent<MetadataRepo>(MetadataRepo::kName))
     , blob_repo_(component_context.FindComponent<BlobRepo>(BlobRepo::kName))
-    , cache_purger_(component_context.FindComponentOptional<CachePurger>(CachePurger::kName))
 {}
 
 utils::expected<CreateUploadPresignedUrlResult, CreateUploadPresignedUrlError> WriteService::CreateUploadPresignedUrl(
@@ -141,21 +140,6 @@ utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(c
             case DeletePasteMetadataError::kNotExists: return {DeletePasteError::kNotExists};
             default: return {DeletePasteError::kDbError};
         }
-    }
-
-    // Background nginx cache purging
-    if (cache_purger_) {
-        background_tasks_.AsyncDetach(
-            "cache_purge",
-            [cache_purger = cache_purger_,
-                id = std::string(id)]() {
-                try {
-                    cache_purger->PurgePaste(id);
-                } catch (const engine::TaskCancelledException&) {
-                    LOG_WARNING() << "Cache purging cancelled during shutdown; paste_id=" << id;
-                }
-            }
-        );
     }
 
     return dto::DeletePasteResult();

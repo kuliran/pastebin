@@ -36,7 +36,6 @@ add_library(
     src/services/write_service.cpp
     src/components/metadata_repo.cpp
     src/components/blob_repo.cpp
-    src/components/cache_purger.cpp
     src/components/cleanup_job.cpp
     src/handlers/upload_create_url.cpp
     src/handlers/upload_submit.cpp
