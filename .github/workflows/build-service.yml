@@ -53,11 +53,24 @@ jobs:
             ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-${{ github.ref }}-
             ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-
 
-      - name: Fix run_as_user.sh permissions
-        if: inputs.run-in-docker
+      - name: Cache vcpkg dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .vcpkg/cache
+            .vcpkg/installed
+          key: vcpkg-${{ runner.os }}-deps-${{ hashFiles('vcpkg/vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-deps-
+
+      - name: Setup vcpkg
         run: |
-          [ -f run_as_user.sh ] && chmod +x run_as_user.sh || true
-        working-directory: shared/
+          if [ ! -d /opt/vcpkg ]; then
+            git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg
+            /opt/vcpkg/bootstrap-vcpkg.sh
+          fi
+          bash vcpkg/vcpkg_setup.sh
+          /opt/vcpkg/vcpkg install --triplet x64-linux-asan
 
       - name: Build
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}build-${{ inputs.build-type }}
@@ -67,7 +80,7 @@ jobs:
         if: inputs.run-tests && inputs.build-type == 'debug'
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}test-${{ inputs.build-type }} \
           DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined" \
-          DOCKER_EXTRA_ENV="UBSAN_OPTIONS='print_stacktrace=1'"
+          DOCKER_ENV="UBSAN_OPTIONS='print_stacktrace=1'  "
           # --security-opt runs container in privileged mode
           # because otherwise StackUsageMonitor causes userver to SIGABRT in debug builds
         working-directory: services/${{ inputs.service-name }}

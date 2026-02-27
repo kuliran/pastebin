@@ -74,7 +74,6 @@ jobs:
         with:
           name: read-service-binary
           path: services/read-service/build-release/
-
       - name: Fix permissions
         run: chmod +x services/read-service/build-release/read_service
 
@@ -83,7 +82,6 @@ jobs:
         with:
           name: write-service-binary
           path: services/write-service/build-release/
-
       - name: Fix permissions
         run: chmod +x services/write-service/build-release/write_service
 
@@ -92,7 +90,6 @@ jobs:
         with:
           name: user-service-binary
           path: services/user-service/build-release/
-
       - name: Fix permissions
         run: chmod +x services/user-service/build-release/user_service
 
@@ -106,6 +103,7 @@ jobs:
         run: |
           docker compose logs nginx
           docker compose logs pg-migrate
+          docker compose logs minio-init
       
       - name: Run E2E
-        run: cd tests && venv/bin/pytest e2e/ -v
+        run: cd tests && POSTGRES_CONNECTION=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB} venv/bin/pytest e2e/ -v
