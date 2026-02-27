@@ -1,7 +1,7 @@
 # Start the tests via `make test-debug` or `make test-release`
 
 import pytest
-from shared.fixtures.api_upload_paste import UploadPasteResult
+from shared.utils.upload_paste import UploadPasteResult
 from shared.utils.client import Client
 
 # =========================================
@@ -49,7 +49,7 @@ async def test_utf8(api_upload_paste):
 
 async def test_max_size(api_upload_paste):
     paste_text = "a" * (1024*1024)
-    await api_upload_paste(paste_text, '1_week')
+    await api_upload_paste(paste_text, expires_in='1_week')
 
 async def test_too_large(api_upload_create_url, s3_upload, api_upload_submit_raw):
     paste_text = "a" * (1024*1024+1)
@@ -84,7 +84,7 @@ async def test_lifetimes(api_upload_paste):
     lifetimes = [None, '1_hour', '1_day', '1_week', '1_month', '3_month']
 
     for x in lifetimes:
-        await api_upload_paste(paste_text, x)
+        await api_upload_paste(paste_text, expires_in=x)
 
 # =========================================
 # ============= LOCAL FIXTURES ============
@@ -93,7 +93,7 @@ async def test_lifetimes(api_upload_paste):
 async def upload_and_get_paste(api_upload_paste, raw_get_paste, auth_client):
     async def _upload(paste_text: str, *, client: Client = auth_client) -> UploadPasteResult:
         upload_res = await api_upload_paste(paste_text, client=client)
-        get_res = await raw_get_paste(upload_res.paste_id, expect_version_id=upload_res.version_id)
+        get_res = await raw_get_paste(upload_res.paste_id)
         assert_upload_and_get_results(upload_res, get_res, paste_text)
 
         return upload_res

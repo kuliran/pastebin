@@ -1,7 +1,6 @@
 import pytest
 import pathlib
 import sys
-import os
 import yaml
 
 pytest_plugins = [
@@ -11,10 +10,11 @@ pytest_plugins = [
     'shared.fixtures.make_minio',
     'shared.fixtures.make_pgsql',
     'shared.fixtures.auth',
-    'shared.fixtures.api_upload_paste',
-    'shared.fixtures.api_delete_paste',
     'shared.fixtures.raw_insert_paste',
     'shared.fixtures.raw_get_paste',
+    'shared.fixtures.api_delete_paste',
+    'shared.fixtures.api_upload_paste_raw',
+    'fixtures.api_upload_paste',
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent

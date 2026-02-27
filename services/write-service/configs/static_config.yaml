@@ -32,6 +32,7 @@ components_manager:
 
         blob-repo:
             endpoint: $s3-endpoint
+            public_endpoint: $s3-public-endpoint
             bucket: pastes
             access_key: $s3-access-key
             secret_key: $s3-secret-key
@@ -42,6 +43,7 @@ components_manager:
             upload_rate_limit_create_url_max: 10
         cache-purger: # purges nginx cache on paste DELETE
             load-enabled: $cache-purge-enabled # disabled in non-e2e tests
+            endpoint: http://nginx/purge/api/v2/
         cleanup-job:
             interval_s: 120
             batch_size_expired: 40
@@ -87,7 +89,7 @@ components_manager:
                 type: bearer
 
         handler-delete-paste:
-            path: /api/v2/paste/{id}
+            path: /api/v2/paste/delete/{id}
             method: DELETE
             task_processor: main-task-processor
             max_request_size: 1024 # 1KB

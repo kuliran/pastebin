@@ -3,11 +3,12 @@ worker-fs-threads: 2
 logger-level: debug
 
 is-testing: false
-cache-purge-enabled: true
+cache-purge-enabled: false
 
 server-port: 8080
 
 pg-connection#env: POSTGRES_CONNECTION
 s3-endpoint#env: S3_ENDPOINT
+s3-public-endpoint#env: S3_PUBLIC_ENDPOINT
 s3-access-key#env: S3_ACCESS_KEY
 s3-secret-key#env: S3_SECRET_KEY

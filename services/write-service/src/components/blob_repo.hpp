@@ -12,6 +12,10 @@ enum class GetPendingBlobMetadataError {
     kNotFound,
     kDbError,
 };
+
+struct SubmitBlobResult {
+    std::string version_id;
+};
 enum class SubmitBlobError {
     kNotFound,
     kDbError,
@@ -35,7 +39,7 @@ public:
     userver::utils::expected<BlobS3Metadata, GetPendingBlobMetadataError> GetPendingBlobMetadataBlocking(std::string paste_id);
 
     // ** Blocks the whole thread, call in userver::utils::Async!
-    std::optional<SubmitBlobError> SubmitBlobBlocking(std::string_view paste_id, std::string_view version_id);
+    userver::utils::expected<SubmitBlobResult, SubmitBlobError> SubmitBlobBlocking(std::string_view paste_id, std::string_view version_id);
 
     bool DeletePasteBlobBlocking(const std::string& key, const std::optional<std::string>& version_id);
 
@@ -43,6 +47,7 @@ public:
 
 private:
     std::shared_ptr<Aws::S3::S3Client> aws_client_;
+    std::shared_ptr<Aws::S3::S3Client> aws_url_gen_client_;
     std::string bucket_;
 };
 

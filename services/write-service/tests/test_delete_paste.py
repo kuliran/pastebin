@@ -52,3 +52,19 @@ async def test_delete_non_owner_fails(api_upload_paste, api_delete_paste_raw, ra
     delete = await api_delete_paste_raw(res.paste_id, client=other_client)
     assert delete.status == 403
     await raw_get_paste(res.paste_id)
+
+async def test_cleanup_deleted_job(minio_server, service_client, api_upload_paste, api_delete_paste, raw_get_paste_expect_none):
+    paste_text = "Hello world!"
+
+    upload = await api_upload_paste(paste_text)
+    paste_id = upload.paste_id
+
+    await api_delete_paste(paste_id)
+    await service_client.run_periodic_task("cleanup_job")
+
+    import botocore.exceptions
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        minio_server["client"].head_object(Bucket=minio_server["bucket"], Key=f"submitted/{paste_id}")
+    assert exc.value.response["Error"]["Code"] == "404"
+
+    await raw_get_paste_expect_none(paste_id)

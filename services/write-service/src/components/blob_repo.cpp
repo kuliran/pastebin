@@ -26,6 +26,7 @@ BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::
 
     bucket_ = config["bucket"].As<std::string>();
     auto endpoint = config["endpoint"].As<std::string>();
+    auto public_endpoint = config["public_endpoint"].As<std::string>();
     auto access_key = config["access_key"].As<std::string>();
     auto secret_key = config["secret_key"].As<std::string>();
     auto region = config["region"].As<std::string>("us-east-1");
@@ -33,14 +34,30 @@ BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::
 
     Aws::Client::ClientConfiguration aws_cfg;
     aws_cfg.endpointOverride = std::move(endpoint);
-    aws_cfg.scheme = use_https ? Aws::Http::Scheme::HTTPS
-                               : Aws::Http::Scheme::HTTP;
-    aws_cfg.region = std::move(region);
+    aws_cfg.scheme = use_https ? Aws::Http::Scheme::HTTPS : Aws::Http::Scheme::HTTP;
+    aws_cfg.region = region;
+    aws_cfg.connectTimeoutMs = 2000;
+    aws_cfg.requestTimeoutMs = 4000;
+    aws_cfg.httpRequestTimeoutMs = 4000;
 
-    Aws::Auth::AWSCredentials aws_creds{std::move(access_key), std::move(secret_key)};
+    Aws::Auth::AWSCredentials aws_creds{access_key, secret_key};
     aws_client_ = std::make_shared<Aws::S3::S3Client>(
-        aws_creds,
-        aws_cfg,
+        aws_creds, aws_cfg,
+        Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
+        /*useVirtualAddressing=*/false
+    );
+
+    Aws::Client::ClientConfiguration presigned_cfg;
+    presigned_cfg.endpointOverride = std::move(public_endpoint);
+    presigned_cfg.scheme = use_https ? Aws::Http::Scheme::HTTPS : Aws::Http::Scheme::HTTP;
+    presigned_cfg.region = std::move(region);
+    presigned_cfg.connectTimeoutMs = 2000;
+    presigned_cfg.requestTimeoutMs = 4000;
+    presigned_cfg.httpRequestTimeoutMs = 4000;
+
+    Aws::Auth::AWSCredentials aws_url_gen_creds{std::move(access_key), std::move(secret_key)};
+    aws_url_gen_client_ = std::make_shared<Aws::S3::S3Client>(
+        aws_url_gen_creds, presigned_cfg,
         Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never,
         /*useVirtualAddressing=*/false
     );
@@ -48,7 +65,7 @@ BlobRepo::BlobRepo(const components::ComponentConfig& config, const components::
 
 std::string BlobRepo::CreatePresignedPut(std::string_view paste_id, std::chrono::seconds ttl) {
     // is a pure cryptograpy operation - no thread-blocking network calls. Can be safely called in userver coroutines
-    return aws_client_->GeneratePresignedUrl(
+    return aws_url_gen_client_->GeneratePresignedUrl(
         bucket_,
         "pending/" + std::string(paste_id),
         Aws::Http::HttpMethod::HTTP_PUT,
@@ -86,11 +103,14 @@ userver::utils::expected<BlobS3Metadata, GetPendingBlobMetadataError> BlobRepo::
     };
 }
 
-std::optional<SubmitBlobError> BlobRepo::SubmitBlobBlocking(std::string_view paste_id, std::string_view version_id) {
+userver::utils::expected<SubmitBlobResult, SubmitBlobError> BlobRepo::SubmitBlobBlocking(std::string_view paste_id, std::string_view version_id) {
+    auto key = "submitted/" + std::string(paste_id);
+
     Aws::S3::Model::CopyObjectRequest req;
     req.SetBucket(bucket_);
     req.SetCopySource(bucket_ + "/pending/" + std::string(paste_id));
-    req.SetKey("submitted/" + std::string(paste_id) + "?versionId=" + std::string(version_id));
+    req.SetAdditionalCustomHeaderValue("x-amz-copy-source-version-id", std::string(version_id));
+    req.SetKey(key);
 
     auto copy_outcome = aws_client_->CopyObject(req);
     if (!copy_outcome.IsSuccess()) {
@@ -103,14 +123,22 @@ std::optional<SubmitBlobError> BlobRepo::SubmitBlobBlocking(std::string_view pas
         return {SubmitBlobError::kDbError};
     }
 
-    return std::nullopt;
+    Aws::S3::Model::HeadObjectRequest head_req;
+    head_req.SetBucket(bucket_);
+    head_req.SetKey(std::move(key));
+    auto head_outcome = aws_client_->HeadObject(head_req);
+    if (!head_outcome.IsSuccess()) {
+        LOG_WARNING() << "HeadObject after copy failed: " << head_outcome.GetError().GetMessage();
+        return {SubmitBlobError::kDbError};
+    }
+
+    return SubmitBlobResult{head_outcome.GetResult().GetVersionId()};
 }
 
 bool BlobRepo::DeletePasteBlobBlocking(const std::string& key, const std::optional<std::string>& version_id) {
     Aws::S3::Model::DeleteObjectRequest req;
     req.SetBucket(bucket_);
     req.SetKey(key);
-
     if (version_id.has_value()) {
         req.SetVersionId(*version_id);
     }
@@ -119,6 +147,7 @@ bool BlobRepo::DeletePasteBlobBlocking(const std::string& key, const std::option
     if (!outcome.IsSuccess()) {
         const auto http_code = static_cast<int>(outcome.GetError().GetResponseCode());
         if (http_code == 404) {
+            LOG_DEBUG() << "DeletePasteBlob not found";
             return true;
         }
         LOG_WARNING() << "DeletePasteBlob failed key=" << key
@@ -126,6 +155,7 @@ bool BlobRepo::DeletePasteBlobBlocking(const std::string& key, const std::option
         return false;
     }
 
+    LOG_DEBUG() << "DeletePasteBlob deleted";
     return true;
 }
 
@@ -137,7 +167,10 @@ userver::yaml_config::Schema BlobRepo::GetStaticConfigSchema() {
         properties:
             endpoint:
                 type: string
-                description: S3 endpoint (e.g. localhost:9000)
+                description: S3 endpoint (e.g. minio:9000 inside docker network)
+            public_endpoint:
+                type: string
+                description: S3 public endpoint that the user will connect to (e.g. localhost:9000)
             bucket:
                 type: string
                 description: S3 bucket name

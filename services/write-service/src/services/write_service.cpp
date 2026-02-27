@@ -95,13 +95,14 @@ userver::utils::expected<SubmitUploadResult, SubmitUploadError>
     if (blob_s3_meta.value().size_bytes > kMaxBlobSizeBytes)
         return {SubmitUploadError::kBlobTooLarge};
 
-    auto blob_submit_err = userver::utils::Async("submit_blob", [this, &paste_id, &version_id = blob_s3_meta.value().version_id] {
-        return blob_repo_.SubmitBlobBlocking(paste_id, version_id);
+    auto blob_submit = userver::utils::Async("submit_blob", [this, &paste_id, &version_id = blob_s3_meta.value().version_id] {
+        return blob_repo_.SubmitBlobBlocking(paste_id, std::move(version_id));
     }).Get();
-    if (blob_submit_err) {
-        switch (*blob_submit_err) {
+    if (!blob_submit) {
+        switch (blob_submit.error()) {
             case SubmitBlobError::kNotFound: {
-                LOG_DEBUG() << "SubmitBlobError NotFound paste_id=" << paste_id << " user_id=" << user_id;
+                LOG_DEBUG() << "SubmitBlobError NotFound paste_id=" << paste_id << " user_id=" << user_id
+                    << " version_id=" << blob_s3_meta.value().version_id;
                 return {SubmitUploadError::kBlobNotExists};
             }
             default: return {SubmitUploadError::kDbError};
@@ -110,7 +111,7 @@ userver::utils::expected<SubmitUploadResult, SubmitUploadError>
 
     auto metadata_err = metadata_repo_.SubmitUpload(
         std::move(paste_id),
-        std::move(blob_s3_meta.value().version_id),
+        std::move(blob_submit.value().version_id),
         user_id,
         blob_s3_meta.value().size_bytes
     );
@@ -141,19 +142,6 @@ utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(c
             default: return {DeletePasteError::kDbError};
         }
     }
-
-    // Background orphan blob cleanup
-    background_tasks_.AsyncDetach(
-        "blob_cleanup",
-        [&blob_repo = blob_repo_, // passing repo by ref - it's a component with lifetime of the whole process
-            id = std::string(id)]() {
-            try {
-                blob_repo.DeletePasteBlobBlocking(id, {});
-            } catch (const std::exception& e) {
-                LOG_WARNING() << "Blob cleanup error id=" << id;
-            }
-        }
-    );
 
     // Background nginx cache purging
     if (cache_purger_) {

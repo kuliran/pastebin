@@ -9,5 +9,6 @@ server-port: 8080
 
 pg-connection: postgresql://testsuite@localhost:15433/pg_db_1
 s3-endpoint#env: S3_ENDPOINT
+s3-public-endpoint#env: S3_ENDPOINT
 s3-access-key#env: S3_ACCESS_KEY
 s3-secret-key#env: S3_SECRET_KEY
