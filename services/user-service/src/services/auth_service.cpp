@@ -11,7 +11,7 @@ namespace user_service {
 
 AuthService::AuthService(const components::ComponentConfig& config, const components::ComponentContext& component_context)
     : components::LoggableComponentBase(config, component_context)
-    , user_repo_(component_context.FindComponent<AuthRepo>(AuthRepo::kName))
+    , auth_repo_(component_context.FindComponent<AuthRepo>(AuthRepo::kName))
     , jwt_issuer_(ReadFile(kPrivateKeyPath))
 {}
 
@@ -28,7 +28,7 @@ userver::utils::expected<CreateUserResult, CreateUserError> AuthService::CreateU
     const auto now = std::chrono::system_clock::now();
     const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
 
-    auto result = user_repo_.CreateUserWithSession(CreateUserParams{
+    auto result = auth_repo_.CreateUserWithSession(CreateUserParams{
         .user_id = user_id,
         .username = creds.username,
         .pwd_hash = std::move(pwd_hash),
@@ -52,23 +52,24 @@ userver::utils::expected<CreateUserResult, CreateUserError> AuthService::CreateU
     };
 }
 
-userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
+userver::utils::expected<dto::CreateSessionResult, dto::CreateSessionError>
     AuthService::CreateSession(const dto::UserCredentials& creds) const {
 
     const auto now = std::chrono::system_clock::now();
     const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
 
-    auto result = user_repo_.CreateSession(creds, now, refresh_tk_expires_at);
+    auto result = auth_repo_.CreateSession(creds, now, refresh_tk_expires_at);
     if (!result) {
         switch (result.error()) {
-        case RefreshSessionRepoError::kUnauthorized: return {RefreshSessionError::kUnauthorized};
-        default: return {RefreshSessionError::kDbError};
+        case CreateSessionRepoError::kUnauthorized: return {CreateSessionError::kUnauthorized};
+        default: return {CreateSessionError::kDbError};
         }
     }
 
     auto jwt = jwt_issuer_.Issue(jwt_wrapper::Issuer::Claims{std::move(result.value().user_id)}, now);
 
-    return RefreshSessionResult{
+    return CreateSessionResult{
+        .user_id = result.value().user_id,
         .access_tk = jwt.tk,
         .refresh_tk = result.value().refresh_tk,
         .access_tk_expires_at = jwt.expires_at,
@@ -80,7 +81,7 @@ userver::utils::expected<RefreshSessionResult, RefreshSessionError>
     const auto now = std::chrono::system_clock::now();
     const auto refresh_tk_expires_at = now + kRefreshTkLifetime;
 
-    auto result = user_repo_.RefreshSession(refresh_tk, now, refresh_tk_expires_at);
+    auto result = auth_repo_.RefreshSession(refresh_tk, now, refresh_tk_expires_at);
     if (!result) {
         switch (result.error()) {
         case RefreshSessionRepoError::kNoUserExists: return {RefreshSessionError::kNoUserExists};

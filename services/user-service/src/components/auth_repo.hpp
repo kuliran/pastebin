@@ -24,15 +24,18 @@ enum class CreateUserRepoError {
     kDbError,
 };
 
-struct RefreshSessionRepoResult {
+struct CreateSessionRepoResult {
     std::string user_id;
     std::string refresh_tk;
 };
-enum class RefreshSessionRepoError {
+enum class CreateSessionRepoError {
     kNoUserExists,
     kUnauthorized,
     kDbError,
 };
+
+using RefreshSessionRepoResult = CreateSessionRepoResult;
+using RefreshSessionRepoError = CreateSessionRepoError;
 
 class AuthRepo final : public userver::components::LoggableComponentBase {
 public:
@@ -42,7 +45,7 @@ public:
 
     userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> CreateUserWithSession(const CreateUserParams&) const;
 
-    userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> CreateSession(
+    userver::utils::expected<CreateSessionRepoResult, CreateSessionRepoError> CreateSession(
         const dto::UserCredentials& creds, std::chrono::system_clock::time_point created_at,
         std::chrono::system_clock::time_point expires_at) const;
 

@@ -63,7 +63,7 @@ userver::utils::expected<CreateUserRepoResult, CreateUserRepoError> AuthRepo::Cr
     }
 }
 
-userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> AuthRepo::CreateSession(
+userver::utils::expected<CreateSessionRepoResult, CreateSessionRepoError> AuthRepo::CreateSession(
     const dto::UserCredentials& creds, std::chrono::system_clock::time_point created_at,
     std::chrono::system_clock::time_point expires_at) const {
     try {
@@ -82,13 +82,13 @@ userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> Auth
         );
         if (result.IsEmpty()) {
             LOG_DEBUG() << "Invalid username=" << creds.username;
-            return {RefreshSessionRepoError::kNoUserExists};
+            return {CreateSessionRepoError::kNoUserExists};
         }
 
         auto [user_id, pwd_hash] = result.AsSingleRow<std::tuple<std::string, std::string>>(storages::postgres::kRowTag);
         if (!user_service::crypto::VerifyHash(creds.password, pwd_hash)) {
             LOG_DEBUG() << "Invalid pwd: username=" << creds.username << " password=" << creds.password;
-            return {RefreshSessionRepoError::kUnauthorized};
+            return {CreateSessionRepoError::kUnauthorized};
         }
 
         const auto insert = transaction.Execute(
@@ -105,10 +105,10 @@ userver::utils::expected<RefreshSessionRepoResult, RefreshSessionRepoError> Auth
         LOG_DEBUG() << "New session: user_id=" << user_id << " refresh_tk=" << new_refresh_tk;
 
         transaction.Commit();
-        return RefreshSessionRepoResult{user_id, new_refresh_tk};
+        return CreateSessionRepoResult{user_id, new_refresh_tk};
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
-        return {RefreshSessionRepoError::kDbError};
+        return {CreateSessionRepoError::kDbError};
     }
 }
 

@@ -36,8 +36,8 @@ formats::json::Value Login::
     auto result = user_service_.CreateSession(dto::UserCredentials{std::move(username), std::move(password)});
     if (!result) {
         switch (result.error()) {
-            case RefreshSessionError::kNoUserExists:
-            case RefreshSessionError::kUnauthorized: {
+            case CreateSessionError::kNoUserExists:
+            case CreateSessionError::kUnauthorized: {
                 request.SetResponseStatus(HttpStatus::kUnauthorized);
                 return {};
             }
@@ -55,7 +55,10 @@ formats::json::Value Login::
     );
 
     request.GetHttpResponse().SetCookie(refresh_tk_cookie);
-    return formats::json::MakeObject("access_tk", std::move(result.value().access_tk));
+    return formats::json::MakeObject(
+        "access_tk", std::move(result.value().access_tk),
+        "user_id", std::move(result.value().user_id)
+    );
 }
 
 } // namespace user_service

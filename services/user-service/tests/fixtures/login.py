@@ -4,6 +4,7 @@ import utils.auth as auth
 
 @dataclass
 class LoginResult:
+    user_id: str
     access_tk: str
     refresh_tk: str
 
@@ -15,7 +16,9 @@ def login(endpoints, service_client):
         assert response.status == 200
         tokens = auth.validate_response_tokens(response)
 
+        json = response.json()
         return LoginResult(
+            user_id=json['user_id'],
             access_tk=tokens.access_tk,
             refresh_tk=tokens.refresh_tk
         )

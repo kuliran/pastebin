@@ -55,7 +55,10 @@ formats::json::Value Signup::
     );
     request.GetHttpResponse().SetCookie(refresh_tk_cookie);
     request.SetResponseStatus(HttpStatus::kCreated);
-    return formats::json::MakeObject("access_tk", std::move(result.value().access_tk));
+    return formats::json::MakeObject(
+        "access_tk", std::move(result.value().access_tk),
+        "user_id", std::move(result.value().user_id)
+    );
 }
 
 } // namespace user_service

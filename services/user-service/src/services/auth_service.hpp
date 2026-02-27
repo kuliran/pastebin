@@ -17,7 +17,7 @@ public:
 
     userver::utils::expected<dto::CreateUserResult, dto::CreateUserError>
         CreateUser(const dto::UserCredentials& creds) const;
-    userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
+    userver::utils::expected<dto::CreateSessionResult, dto::CreateSessionError>
         CreateSession(const dto::UserCredentials& creds) const;
     userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
         RefreshSession(const std::string& refresh_tk) const;
@@ -36,7 +36,7 @@ private:
     static constexpr std::string_view kPrivateKeyPath = "/run/secrets/private.pem";
     static constexpr std::chrono::seconds kRefreshTkLifetime = std::chrono::hours(24*7); // 1 week
 
-    AuthRepo& user_repo_;
+    AuthRepo& auth_repo_;
     jwt_wrapper::Issuer jwt_issuer_;
 };
 

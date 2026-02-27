@@ -22,15 +22,23 @@ enum class CreateUserError {
     kDbError,
 };
 
+struct CreateSessionResult {
+    std::string user_id;
+    std::string access_tk;
+    std::string refresh_tk;
+    std::chrono::system_clock::time_point access_tk_expires_at;
+};
+enum class CreateSessionError {
+    kNoUserExists,
+    kUnauthorized,
+    kDbError,
+};
+
 struct RefreshSessionResult {
     std::string access_tk;
     std::string refresh_tk;
     std::chrono::system_clock::time_point access_tk_expires_at;
 };
-enum class RefreshSessionError {
-    kNoUserExists,
-    kUnauthorized,
-    kDbError,
-};
+using RefreshSessionError = CreateSessionError;
 
 }
