@@ -86,7 +86,7 @@ jobs:
           DOCKER_EXTRA_OPTS=" \
             --security-opt seccomp=unconfined \
             -v $VCPKG_DEFAULT_BINARY_CACHE:/opt/vcpkg_cache/:rw \
-      	    -v $VCPKG_INSTALLED_DIR:/opt/vcpkg_installed:rw \
+            -v $VCPKG_INSTALLED_DIR:/opt/vcpkg_installed:rw \
           " \
           DOCKER_ENV="UBSAN_OPTIONS='print_stacktrace=1'"
           # --security-opt runs container in privileged mode
