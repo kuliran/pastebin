@@ -75,7 +75,7 @@ jobs:
             /opt/vcpkg/bootstrap-vcpkg.sh
           fi
           bash vcpkg/vcpkg_setup.sh $(pwd)
-          /opt/vcpkg/vcpkg install --triplet x64-linux-asan
+          /opt/vcpkg/vcpkg install --triplet=x64-linux-asan
 
       - name: Build
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}build-${{ inputs.build-type }}
