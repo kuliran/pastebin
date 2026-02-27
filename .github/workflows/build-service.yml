@@ -57,6 +57,7 @@ jobs:
         run: |
           echo "VCPKG_DEFAULT_BINARY_CACHE=/opt/vcpkg_cache" >> $GITHUB_ENV
           echo "VCPKG_INSTALLED_DIR=/opt/vcpkg_installed" >> $GITHUB_ENV
+          echo "VCPKG_ROOT=/home/runner/vcpkg" >> $GITHUB_ENV
 
       - name: Cache vcpkg dependencies
         uses: actions/cache@v4
@@ -68,11 +69,20 @@ jobs:
           restore-keys: |
             vcpkg-deps-${{ runner.os }}-
 
+      - name: Cache vcpkg root
+        uses: actions/cache@v4
+        with:
+          path: |
+            $VCPKG_ROOT
+          key: vcpkg-root
+          restore-keys: |
+            vcpkg-root
+
       - name: Setup vcpkg
         run: |
-          if [ ! -d /opt/vcpkg ]; then
-            git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg
-            /opt/vcpkg/bootstrap-vcpkg.sh
+          if [ ! -d $VCPKG_ROOT ]; then
+            git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
+            $VCPKG_ROOT/bootstrap-vcpkg.sh
           fi
           bash vcpkg/vcpkg_setup.sh $(pwd)
 
@@ -85,6 +95,7 @@ jobs:
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}test-${{ inputs.build-type }} \
           DOCKER_EXTRA_OPTS=" \
             --security-opt seccomp=unconfined \
+            -v $VCPKG_ROOT:/opt/vcpkg:rw \
             -v $VCPKG_DEFAULT_BINARY_CACHE:/opt/vcpkg_cache/:rw \
             -v $VCPKG_INSTALLED_DIR:/opt/vcpkg_installed:rw \
           " \
