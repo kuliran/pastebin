@@ -69,7 +69,7 @@ jobs:
             git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg
             /opt/vcpkg/bootstrap-vcpkg.sh
           fi
-          bash vcpkg/vcpkg_setup.sh
+          bash vcpkg/vcpkg_setup.sh $(pwd)
           /opt/vcpkg/vcpkg install --triplet x64-linux-asan
 
       - name: Build

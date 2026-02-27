@@ -2,16 +2,16 @@
 
 set -e
 
+REPO_ROOT=${1:-/app}
+
 VCPKG_ROOT="/opt/vcpkg"
 export PATH="$VCPKG_ROOT:$PATH"
 export VCPKG_FORCE_SYSTEM_BINARIES=1
 export CC=clang
 export CXX=clang++
 
-cd /app
-
 mkdir -p $VCPKG_DEFAULT_BINARY_CACHE
 mkdir -p $VCPKG_INSTALLED_DIR
-sudo chown -R $(id -u):$(id -g) .vcpkg/
+sudo chown -R $(id -u):$(id -g) $REPO_ROOT/vcpkg/
 
-cp /app/vcpkg/triplets/* $VCPKG_ROOT/triplets/
+cp $REPO_ROOT/vcpkg/triplets/* $VCPKG_ROOT/triplets/
