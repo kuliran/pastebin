@@ -53,15 +53,20 @@ jobs:
             ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-${{ github.ref }}-
             ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-
 
+      - name: Set vcpkg environment variables
+        run: |
+          echo "VCPKG_DEFAULT_BINARY_CACHE=/opt/vcpkg_cache" >> $GITHUB_ENV
+          echo "VCPKG_INSTALLED_DIR=/opt/vcpkg_installed" >> $GITHUB_ENV
+
       - name: Cache vcpkg dependencies
         uses: actions/cache@v4
         with:
           path: |
-            .vcpkg/cache
-            .vcpkg/installed
-          key: vcpkg-${{ runner.os }}-deps-${{ hashFiles('vcpkg/vcpkg.json') }}
+            $VCPKG_DEFAULT_BINARY_CACHE
+            $VCPKG_INSTALLED_DIR
+          key: vcpkg-deps-${{ runner.os }}-${{ hashFiles('vcpkg/vcpkg.json') }}
           restore-keys: |
-            vcpkg-${{ runner.os }}-deps-
+            vcpkg-deps-${{ runner.os }}-
 
       - name: Setup vcpkg
         run: |
