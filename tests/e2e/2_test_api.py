@@ -1,184 +1,108 @@
-import time
-from dataclasses import dataclass
 import pytest
-import requests
+import time
 from dateutil.parser import isoparse
 from datetime import datetime, timezone
-from utils.auth import Client
-
-USERNAME = 'test_api'
-PASSWORD = 'test_api'
-
-@dataclass
-class Context:
-    client: Client
-
-@pytest.fixture(scope='session')
-def ctx(auth_client) -> Context:
-    return Context(client=auth_client(USERNAME, PASSWORD))
+from shared.utils.client import Client
+from shared.utils.upload_paste import get_paste_id
 
 # ============================================
-def test_upload_basic(upload_paste):
-    r = upload_paste("Hello, World!")
+async def test_upload_basic(api_upload_paste):
+    r = await api_upload_paste("Hello, World!")
     assert len(r.paste_id) > 0
 
-def test_upload_empty_text_fails(upload_paste_raw):
-    r = upload_paste_raw("")
-    assert r.status_code == 400
+async def test_upload_empty_text_fails(api_upload_create_url_raw, s3_upload, api_upload_submit_raw):
+    create_url = await api_upload_create_url_raw()
+    presigned_url = create_url.json()['presigned_url']
+    paste_id = get_paste_id(presigned_url)
+    await s3_upload(presigned_url, "")
+    r = await api_upload_submit_raw(paste_id)
+    assert r.status == 409
 
-def test_upload_without_text_field_fails(upload_paste_raw):
-    r = upload_paste_raw(json={})
-    assert r.status_code == 400
+async def test_upload_1MB(api_upload_paste):
+    text = "x" * (1024 * 1024)
+    await api_upload_paste(text)
 
-def test_upload_1MB(upload_paste):
-    content = "x" * (1024 * 1024)
-    upload_paste(content)
+async def test_upload_too_large_fails(api_upload_create_url_raw, s3_upload, api_upload_submit_raw):
+    text = "x" * (1024 * 1024 + 1)
 
-def test_upload_too_large_fails(upload_paste_raw):
-    content = "x" * (1024 * 1024 + 1)
-    r = upload_paste_raw(content)
-    assert r.status_code == 413
+    create_url = await api_upload_create_url_raw()
+    presigned_url = create_url.json()['presigned_url']
+    paste_id = get_paste_id(presigned_url)
+    await s3_upload(presigned_url, text)
+    r = await api_upload_submit_raw(paste_id)
+    assert r.status == 413
 
-def test_upload_utf8(upload_paste, get_paste_raw):
+async def test_upload_utf8(api_upload_paste, api_get_paste):
     text = "Привет мир! 🌍 こんにちは"
-    r = upload_paste(text)
-    r2 = get_paste_raw(r.paste_id)
-    assert r2.status_code == 200
-    assert r2.json()['text'] == text
+    r = await api_upload_paste(text)
+    r2 = await api_get_paste(r.paste_id)
+    assert r2.data == r.data
 
-def test_expires_in_field(upload_paste, get_paste_raw):
+async def test_expires_in_field(api_upload_paste, api_get_paste):
     now = datetime.now(timezone.utc)
-    r = upload_paste("Hello, world!", "3_month")
-    r2 = get_paste_raw(r.paste_id)
-    assert r2.status_code == 200
+    r = await api_upload_paste("Hello, world!", expires_in="3_month")
+    r2 = await api_get_paste(r.paste_id)
 
-    created_at = isoparse(r2.json()['created_at'])
-    expires_at = isoparse(r2.json()['expires_at'])
-    assert (expires_at - created_at).total_seconds() == 60 * 60 * 24 * 30 * 3
-    assert (created_at - now).total_seconds() <= 2
+    assert (r2.expires_at_utc - r2.created_at_utc).total_seconds() == 60 * 60 * 24 * 30 * 3
+    assert (r2.created_at_utc - now).total_seconds() <= 2
 
-def test_upload_too_large_fails(upload_paste_raw):
-    content = "x" * (1024 * 1024 + 1)
-    r = upload_paste_raw(content)
-    assert r.status_code == 413
+async def test_unauthorized_upload_fails(api_upload_create_url_raw, new_unauth_client):
+    unauth = new_unauth_client()
+    r = await api_upload_create_url_raw(client=unauth)
+    assert r.status in (400, 401, 403)
 
-def test_unauthorized_upload_fails(upload_paste_raw, unauth_client):
-    ctx = Context(client=unauth_client())
-    r = upload_paste_raw("Hello, world!", ctx=ctx)
-    assert r.status_code in (401, 403)
+async def test_upload_twice_and_get(api_upload_create_url_raw, s3_upload, api_upload_submit_raw, api_get_paste):
+    paste_text = 'Hello, world!'
 
-# ============================================
-def test_get_nonexistent(get_paste_raw):
-    r = get_paste_raw("nonexistent_id_xyz")
-    assert r.status_code == 404
+    create_url = await api_upload_create_url_raw()
+    presigned_url = create_url.json()['presigned_url']
+    paste_id = get_paste_id(presigned_url)
+    first_upload = await s3_upload(presigned_url, paste_text)
+    r = await api_upload_submit_raw(paste_id)
+    assert r.status == 200
+    await s3_upload(presigned_url, 'Other text')
 
-# ============================================
-def test_delete_existing(upload_paste, get_paste_raw, delete_paste_raw):
-    r = upload_paste("to be deleted")
-    r2 = delete_paste_raw(r.paste_id)
-    assert r2.status_code == 204
-    time.sleep(0.5)
-    r3 = get_paste_raw(r.paste_id)
-    assert r3.status_code == 404
+    get = await api_get_paste(paste_id)
+    assert get.data == first_upload.data
 
-def test_delete_nonexistent(delete_paste_raw):
-    r = delete_paste_raw("nonexistent_id_xyz")
-    assert r.status_code == 204
+# # ============================================
+async def test_get_nonexistent(api_get_paste_expect_none):
+    await api_get_paste_expect_none("nonexistent_id_xyz")
 
-def test_double_delete(upload_paste, delete_paste_raw):
-    r = upload_paste("double delete test")
-    r1 = delete_paste_raw(r.paste_id)
-    assert r1.status_code == 204
-    r2 = delete_paste_raw(r.paste_id)
-    assert r2.status_code == 204
+# # ============================================
+async def test_delete_existing(api_upload_paste, api_get_paste_expect_none, api_delete_paste):
+    r = await api_upload_paste("to be deleted")
+    await api_delete_paste(r.paste_id)
+    await api_get_paste_expect_none(r.paste_id)
 
-def test_unauthorized_delete_fails(upload_paste, delete_paste_raw, unauth_client):
-    r = upload_paste("Hello, world!")
+async def test_delete_nonexistent(api_delete_paste_raw):
+    r = await api_delete_paste_raw("nonexistent_id_xyz")
+    assert r.status == 204
 
-    diff = Context(client=unauth_client())
-    r2 = delete_paste_raw(r.paste_id, ctx=diff)
-    assert r2.status_code in (401, 403)
+async def test_double_delete(api_upload_paste, api_delete_paste):
+    r = await api_upload_paste("double delete test")
+    await api_delete_paste(r.paste_id)
+    await api_delete_paste(r.paste_id)
 
-def test_diff_user_delete_fails(upload_paste, delete_paste_raw, auth_client):
-    r = upload_paste("Hello, world!")
+async def test_unauthorized_delete_fails(api_upload_paste, api_delete_paste_raw, new_unauth_client):
+    r = await api_upload_paste("Hello, world!")
+
+    unath = new_unauth_client()
+    r2 = await api_delete_paste_raw(r.paste_id, client=unath)
+    assert r2.status in (400, 401, 403)
+
+async def test_diff_user_delete_fails(api_upload_paste, api_delete_paste_raw, new_auth_client):
+    r = await api_upload_paste("Hello, world!")
     
-    diff = Context(client=auth_client("diff_user_delete_test", "diff_user_delete_test"))
-    r2 = delete_paste_raw(r.paste_id, ctx=diff)
-    assert r2.status_code in (401, 403)
+    diff = await new_auth_client("diff_user_delete_test", "diff_user_delete_test")
+    r2 = await api_delete_paste_raw(r.paste_id, client=diff)
+    assert r2.status in (401, 403)
 
-# ============================================
-def test_cache_hit_on_second_request(upload_paste, get_paste_raw):
-    r = upload_paste("cache test")
-
-    r2 = get_paste_raw(r.paste_id)
-    assert r2.status_code == 200
-    assert r2.headers.get("X-Cache-Status") in ("MISS", None)
-
-    r3 = get_paste_raw(r.paste_id)
-    assert r3.status_code == 200
-    assert r3.headers.get("X-Cache-Status") == "HIT"
-
-def test_cache_invalidated_after_delete(upload_paste, get_paste_raw, delete_paste_raw):
-    r = upload_paste("cache invalidation test")
-
-    get_paste_raw(r.paste_id)  # MISS
-    r2 = get_paste_raw(r.paste_id)
-    assert r2.status_code == 200
-    assert r2.headers.get("X-Cache-Status") == "HIT"
-    delete_paste_raw(r.paste_id)
-    time.sleep(0.5)
-    r3 = get_paste_raw(r.paste_id)
-    assert r3.status_code == 404
-    assert r3.headers.get("X-Cache-Status") != "HIT"
-
-# ============================================
-def test_upload_rate_limit(upload_paste_raw):
+# # ============================================
+async def test_upload_rate_limit(api_upload_create_url_raw):
     responses = []
     for _ in range(50):
-        r = upload_paste_raw("rate limit test")
-        responses.append(r.status_code)
+        r = await api_upload_create_url_raw()
+        responses.append(r.status)
 
-    assert all(s in (200, 429) for s in responses)
-
-# ============================================
-# Helpers
-# ============================================
-@dataclass
-class UploadPasteResult:
-    paste_id: str
-
-@pytest.fixture(scope="session")
-def upload_paste(upload_paste_raw, ctx):
-    def _upload_paste(text: str = None, expires_in: str = None, ctx: Context = ctx, **kwargs) -> UploadPasteResult:
-        r = upload_paste_raw(text, expires_in, ctx=ctx, **kwargs)
-        assert r.status_code == 200
-        assert r.headers["Content-Type"].startswith("application/json")
-        json = r.json()
-        return UploadPasteResult(
-            paste_id=json['id'],
-        )
-    return _upload_paste
-
-@pytest.fixture(scope="session")
-def upload_paste_raw(ctx):
-    def _upload_paste_raw(text: str = None, expires_in: str = None, ctx: Context = ctx, **kwargs) -> requests.Response:
-        payload = {**kwargs}
-        if text is not None:
-            payload["text"] = text
-        if expires_in is not None:
-            payload["expires_in"] = expires_in
-        return ctx.client.post('/api/v1/paste/', json=payload)
-    return _upload_paste_raw
-
-@pytest.fixture(scope="session")
-def get_paste_raw(ctx):
-    def _get_paste_raw(paste_id: str, ctx: Context = ctx, **kwargs) -> requests.Response:
-        return ctx.client.get(f'/api/v1/{paste_id}', **kwargs)
-    return _get_paste_raw
-
-@pytest.fixture(scope="session")
-def delete_paste_raw(ctx):
-    def _delete_paste_raw(paste_id: str, ctx: Context = ctx, **kwargs) -> requests.Response:
-        payload = {**kwargs}
-        return ctx.client.delete(f'/api/v1/delete/{paste_id}', json=payload)
-    return _delete_paste_raw
+    assert all(s in (201, 429) for s in responses)

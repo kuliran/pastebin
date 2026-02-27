@@ -1,4 +1,5 @@
 import pytest
+import requests
 from dataclasses import dataclass
 from dateutil.parser import isoparse
 from shared.fixtures.raw_get_paste import GetPasteResult
@@ -34,22 +35,19 @@ async def api_get_paste_url(auth_client, endpoints) -> GetPasteUrlResult:
     return _get
 
 @pytest.fixture(scope='session')
-async def s3_get(minio_server) -> bytes:
-    async def _get(paste_id: str):
-        response = minio_server['client'].get_object(
-            Bucket=minio_server['bucket'],
-            Key=f"submitted/{paste_id}",
-        )
-        data = response["Body"].read()
-        assert data
-        return data
+async def s3_get() -> bytes:
+    async def _get(presigned_url: str):
+        get = requests.get(presigned_url)
+        assert get.status_code == 200
+        assert get.content
+        return get.content
     return _get
 
 @pytest.fixture
 async def api_get_paste(api_get_paste_url, s3_get, auth_client):
     async def _get(paste_id: str, *, client: Client = auth_client) -> GetPasteResult:
         response = await api_get_paste_url(paste_id, client=client)
-        data = await s3_get(paste_id)
+        data = await s3_get(response.presigned_url)
         return GetPasteResult(
             data=data,
             size_bytes=response.size_bytes,

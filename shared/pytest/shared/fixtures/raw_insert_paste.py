@@ -1,7 +1,7 @@
 import pytest
 from dataclasses import dataclass
 from datetime import datetime
-import shared.utils.auth as auth
+from shared.utils.client import Client
 
 @dataclass
 class RawInsertResult:
@@ -19,17 +19,27 @@ def raw_insert_paste(pg_cursor, minio_server, auth_client):
         paste_text: str,
         expires_in: str = '24 hours',
         *,
-        client: auth.Client = auth_client
+        client: Client = auth_client
     ) -> RawInsertResult:
         data = paste_text.encode("utf-8")
 
         response = minio_server["client"].put_object(
             Bucket=minio_server["bucket"],
-            Key=f"submitted/{paste_id}",
+            Key=f"pending/{paste_id}",
             Body=data,
         )
         version_id = response["VersionId"]
         size_bytes = len(data)
+
+        minio_server["client"].copy_object(
+            Bucket=minio_server["bucket"],
+            CopySource={
+                'Bucket': minio_server["bucket"],
+                'Key': f'pending/{paste_id}',
+                'VersionId': version_id,
+            },
+            Key=f'submitted/{paste_id}',
+        )
 
         pg_cursor.execute(
             """

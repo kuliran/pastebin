@@ -11,7 +11,7 @@ class GetPasteResult:
 
 @pytest.fixture
 def raw_get_paste(pg_cursor, minio_server) -> GetPasteResult:
-    async def _get(paste_id: str, *, expect_version_id: str = None):
+    async def _get(paste_id: str):
         pg_cursor.execute("""
             SELECT created_at, expires_at, size_bytes, s3_version_id
             FROM pastes.metadata
@@ -19,15 +19,13 @@ def raw_get_paste(pg_cursor, minio_server) -> GetPasteResult:
         """, (paste_id,))
         created_at, expires_at, size_bytes, pg_s3_version_id = pg_cursor.fetchone()
         assert created_at is not None
-        if expect_version_id is not None:
-            assert pg_s3_version_id == expect_version_id
 
-        key = 'pending/' + paste_id
+        key = 'submitted/' + paste_id
 
         s3 = minio_server["client"]
-        response = s3.get_object(Bucket=minio_server['bucket'], Key=key, VersionId=pg_s3_version_id)
+        response = s3.get_object(Bucket=minio_server['bucket'], Key=key)
         data = response["Body"].read()
-        head = s3.head_object(Bucket=minio_server['bucket'], Key=key, VersionId=pg_s3_version_id)
+        head = s3.head_object(Bucket=minio_server['bucket'], Key=key)
         assert size_bytes == head["ContentLength"]
 
         return GetPasteResult(
@@ -46,7 +44,9 @@ def raw_get_paste_expect_none(pg_cursor):
             FROM pastes.metadata
             WHERE id = %s
         """, (paste_id,))
-        (status,) = pg_cursor.fetchone()
+        row = pg_cursor.fetchone()
 
-        assert status is None or status == 'deleted'
+        if row is not None:
+            (status,) = row
+            assert status == 'deleted'
     return _get
