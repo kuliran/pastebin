@@ -40,9 +40,9 @@
         "CMAKE_CXX_COMPILER": "clang++",
         "USERVER_FEATURE_POSTGRESQL": "ON", 
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "CMAKE_TOOLCHAIN_FILE": "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_INSTALLED_DIR": "$VCPKG_INSTALLED_DIR",
-        "VCPKG_MANIFEST_DIR": "$VCPKG_MANIFEST_DIR",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_INSTALLED_DIR": "$env{VCPKG_INSTALLED_DIR}",
+        "VCPKG_MANIFEST_DIR": "$env{VCPKG_MANIFEST_DIR}",
         "OPENSSL_USE_STATIC_LIBS": "OFF",
         "VCPKG_TARGET_TRIPLET": "x64-linux-asan"
       }

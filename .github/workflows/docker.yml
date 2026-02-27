@@ -106,4 +106,8 @@ jobs:
           docker compose logs minio-init
       
       - name: Run E2E
-        run: cd tests && POSTGRES_CONNECTION=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB} venv/bin/pytest e2e/ -v
+        run: |
+          source .env
+          cd tests && \
+          POSTGRES_CONNECTION=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB} \
+          venv/bin/pytest e2e/ -v

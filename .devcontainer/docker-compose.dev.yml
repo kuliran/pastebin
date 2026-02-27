@@ -5,8 +5,8 @@ services:
       context: .
       dockerfile: .devcontainer/Dockerfile.dev
       args:
-        UID: ${HOST_UID:-1000}
-        GID: ${HOST_GID:-1000}
+        VCPKG_COMMIT: ${VCPKG_COMMIT}
+        VCPKG_ROOT: /opt/vcpkg
     volumes:
       - .:/app:rw
       - ./shared/keys/dev:/run/secrets:ro

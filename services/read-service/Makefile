@@ -1,4 +1,5 @@
 PROJECT_NAME = read_service
+SERVICE_NAME = read-service
 NPROCS ?= $(shell nproc)
 CLANG_FORMAT ?= clang-format
 DOCKER_IMAGE ?= pastebin-dev:latest
@@ -78,6 +79,8 @@ docker-build-image:
 DOCKER_ENV_VARS = \
     CCACHE_DIR=/app/.ccache \
     HOME=$$HOME \
+	VCPKG_ROOT=/opt/vcpkg \
+	VCPKG_MANIFEST_DIR=/app/vcpkg \
     VCPKG_DEFAULT_BINARY_CACHE=/opt/vcpkg_cache \
     VCPKG_INSTALLED_DIR=/opt/vcpkg_installed \
     $(DOCKER_ENV)
@@ -88,13 +91,15 @@ $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(
 		--network=host \
 		-v $(REPO_ROOT):/app:rw \
 		-v $(REPO_ROOT)/shared/keys/dev:/run/secrets:ro \
-		-v $(REPO_ROOT)/.vcpkg/cache:/opt/vcpkg_cache/:rw \
-      	-v $(REPO_ROOT)/.vcpkg/installed:/opt/vcpkg_installed:rw \
-		-w /app/services/read-service \
+		-v $${VCPKG_DEFAULT_BINARY_CACHE:-$(REPO_ROOT)/.vcpkg/cache}:/opt/vcpkg_cache/:rw \
+      	-v $${VCPKG_INSTALLED_DIR:-$(REPO_ROOT)/.vcpkg/installed}:/opt/vcpkg_installed:rw \
+		-w /app/services/$(SERVICE_NAME) \
 		--rm \
 		$(DOCKER_EXTRA_OPTS) \
 		$(DOCKER_IMAGE) \
 		/bin/bash -c "\
-		env $(DOCKER_ENV_VARS) bash /app/vcpkg/vcpkg_setup.sh && \
-		env $(DOCKER_ENV_VARS) bash /app/shared/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) make $* \
+		env $(DOCKER_ENV_VARS) bash /app/shared/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) \
+			bash /app/vcpkg/vcpkg_setup.sh && \
+		env $(DOCKER_ENV_VARS) bash /app/shared/run_as_user.sh $(shell /bin/id -u) $(shell /bin/id -g) \
+			make $* \
 		"

@@ -1,4 +1,5 @@
 PROJECT_NAME = user_service
+SERVICE_NAME = user-service
 NPROCS ?= $(shell nproc)
 CLANG_FORMAT ?= clang-format
 DOCKER_IMAGE ?= pastebin-dev:latest
@@ -78,8 +79,6 @@ docker-build-image:
 DOCKER_ENV_VARS = \
     CCACHE_DIR=/app/.ccache \
     HOME=$$HOME \
-    VCPKG_DEFAULT_BINARY_CACHE=/opt/vcpkg_cache \
-    VCPKG_INSTALLED_DIR=/opt/vcpkg_installed \
     $(DOCKER_ENV)
 
 .PHONY: $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(addprefix docker-test-, $(PRESETS)) $(addprefix docker-clean-, $(PRESETS))
@@ -88,7 +87,7 @@ $(addprefix docker-cmake-, $(PRESETS)) $(addprefix docker-build-, $(PRESETS)) $(
 		--network=host \
 		-v $(REPO_ROOT):/app:rw \
 		-v $(REPO_ROOT)/shared/keys/dev:/run/secrets:ro \
-		-w /app/services/user-service \
+		-w /app/services/$(SERVICE_NAME) \
 		--rm \
 		$(DOCKER_EXTRA_OPTS) \
 		$(DOCKER_IMAGE) \

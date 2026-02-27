@@ -23,8 +23,14 @@ on:
         type: string
         default: ""
 
+env:
+  VCPKG_COMMIT: ffc071e0c08432c60c9b64f00334c0227667931b
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg/cache
+  VCPKG_INSTALLED_DIR: ${{ github.workspace }}/.vcpkg/installed
+  VCPKG_MANIFEST_DIR: ${{ github.workspace }}/vcpkg
+
 jobs:
-  build-test:
+  build-service:
     runs-on: ubuntu-latest
     
     steps:
@@ -40,9 +46,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ inputs.service-name }}-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ inputs.service-name }}-
+            ${{ runner.os }}-buildx-
 
       - name: Cache ccache directory
         uses: actions/cache@v4
@@ -53,39 +59,26 @@ jobs:
             ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-${{ github.ref }}-
             ccache-${{ inputs.service-name }}-${{ inputs.build-type }}-
 
-      - name: Set vcpkg environment variables
-        run: |
-          echo "VCPKG_ROOT=/home/runner/vcpkg" >> $GITHUB_ENV
-          echo "VCPKG_MANIFEST_DIR=$(pwd)/vcpkg" >> $GITHUB_ENV
-          echo "VCPKG_DEFAULT_BINARY_CACHE=$(pwd)/.vcpkg/cache" >> $GITHUB_ENV
-          echo "VCPKG_INSTALLED_DIR=$(pwd)/.vcpkg/installed" >> $GITHUB_ENV
-
-      - name: Cache vcpkg dependencies
+      - name: Cache vcpkg binary cache
         uses: actions/cache@v4
         with:
-          path: |
-            $VCPKG_DEFAULT_BINARY_CACHE
-            $VCPKG_INSTALLED_DIR
-          key: vcpkg-deps-${{ runner.os }}-${{ hashFiles('vcpkg/vcpkg.json') }}
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-binary-${{ runner.os }}-${{ inputs.service-name }}-${{ hashFiles('vcpkg/vcpkg.json') }}
           restore-keys: |
-            vcpkg-deps-${{ runner.os }}-
+            vcpkg-binary-${{ runner.os }}-${{ inputs.service-name }}
 
-      - name: Cache vcpkg root
+      - name: Cache vcpkg installed
         uses: actions/cache@v4
         with:
-          path: |
-            $VCPKG_ROOT
-          key: vcpkg-root
+          path: ${{ env.VCPKG_INSTALLED_DIR }}
+          key: vcpkg-installed-${{ runner.os }}-${{ inputs.service-name }}-${{ hashFiles('vcpkg/vcpkg.json') }}
           restore-keys: |
-            vcpkg-root
+            vcpkg-binary-${{ runner.os }}-${{ inputs.service-name }}
 
-      - name: Setup vcpkg
+      - name: Fix vcpkg permissions
         run: |
-          if [ ! -d $VCPKG_ROOT ]; then
-            git clone https://github.com/microsoft/vcpkg.git $VCPKG_ROOT
-            $VCPKG_ROOT/bootstrap-vcpkg.sh
-          fi
-          bash vcpkg/vcpkg_setup.sh $(pwd)
+          mkdir -p $VCPKG_INSTALLED_DIR
+          mkdir -p $VCPKG_DEFAULT_BINARY_CACHE
 
       - name: Build
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}build-${{ inputs.build-type }}
@@ -94,7 +87,7 @@ jobs:
       - name: Test
         if: inputs.run-tests && inputs.build-type == 'debug'
         run: make ${{ inputs.run-in-docker && 'docker-' || '' }}test-${{ inputs.build-type }} \
-          DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined"
+          DOCKER_EXTRA_OPTS="--security-opt seccomp=unconfined" \
           DOCKER_ENV="UBSAN_OPTIONS='print_stacktrace=1'"
           # --security-opt runs container in privileged mode
           # because otherwise StackUsageMonitor causes userver to SIGABRT in debug builds

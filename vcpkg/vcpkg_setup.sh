@@ -11,10 +11,13 @@ export VCPKG_FORCE_SYSTEM_BINARIES=1
 export CC=clang
 export CXX=clang++
 
-mkdir -p $VCPKG_ROOT
+echo "running vcpkg_setup..."
+whoami
+stat $VCPKG_ROOT
+
 mkdir -p $VCPKG_DEFAULT_BINARY_CACHE
 mkdir -p $VCPKG_INSTALLED_DIR
-sudo chown -R $(id -u):$(id -g) $VCPKG_MANIFEST_DIR
+chown -R $(id -u):$(id -g) $VCPKG_MANIFEST_DIR
 
 echo "copying from $VCPKG_MANIFEST_DIR/triplets"
 cp $VCPKG_MANIFEST_DIR/triplets/* $VCPKG_ROOT/triplets/
