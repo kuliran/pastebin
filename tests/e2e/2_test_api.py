@@ -65,11 +65,11 @@ async def test_upload_twice_and_get(api_upload_create_url_raw, s3_upload, api_up
     get = await api_get_paste(paste_id)
     assert get.data == first_upload.data
 
-# # ============================================
+# ============================================
 async def test_get_nonexistent(api_get_paste_expect_none):
     await api_get_paste_expect_none("nonexistent_id_xyz")
 
-# # ============================================
+# ============================================
 async def test_delete_existing(api_upload_paste, api_get_paste_expect_none, api_delete_paste):
     r = await api_upload_paste("to be deleted")
     await api_delete_paste(r.paste_id)
@@ -98,7 +98,41 @@ async def test_diff_user_delete_fails(api_upload_paste, api_delete_paste_raw, ne
     r2 = await api_delete_paste_raw(r.paste_id, client=diff)
     assert r2.status in (401, 403)
 
-# # ============================================
+# ============================================
+async def test_private_visibility(api_upload_paste, api_patch_paste, api_get_paste, api_get_paste_expect_unauth, new_auth_client):
+    upload = await api_upload_paste('Hello, world!', visibility='private')
+    diff = await new_auth_client('diff_user_visibility_test', 'diff_user_visibility_test')
+
+    await api_get_paste(upload.paste_id)
+    await api_get_paste_expect_unauth(upload.paste_id, client=diff)
+
+    await api_patch_paste(upload.paste_id, visibility='public')
+    await api_get_paste(upload.paste_id, client=diff)
+    await api_get_paste(upload.paste_id)
+
+async def test_private_perms(api_upload_paste, api_patch_paste, api_get_paste, api_get_paste_expect_unauth, new_auth_client, auth_client):
+    diff = await new_auth_client('diff_user_private_perms_test', 'diff_user_private_perms_test')
+    users = [diff._user_id, auth_client._user_id]
+
+    upload = await api_upload_paste('Hello, world!', visibility='private', private_perms_add=users, client=auth_client)
+    await api_get_paste(upload.paste_id, client=diff)
+    await api_get_paste(upload.paste_id, client=auth_client)
+
+    await api_patch_paste(upload.paste_id, private_perms_rm=[auth_client._user_id], client=auth_client)
+    await api_get_paste(upload.paste_id, client=auth_client)
+    await api_get_paste(upload.paste_id, client=diff)
+
+    await api_patch_paste(upload.paste_id, private_perms_rm=[diff._user_id], client=auth_client)
+    await api_get_paste_expect_unauth(upload.paste_id, client=diff)
+
+    await api_patch_paste(upload.paste_id, visibility='public', client=auth_client)
+    await api_get_paste(upload.paste_id, client=diff)
+
+    await api_patch_paste(upload.paste_id, visibility='private', client=auth_client)
+    await api_get_paste_expect_unauth(upload.paste_id, client=diff)
+    await api_get_paste(upload.paste_id, client=auth_client)
+
+# ============================================
 async def test_upload_rate_limit(api_upload_create_url_raw):
     responses = []
     for _ in range(50):

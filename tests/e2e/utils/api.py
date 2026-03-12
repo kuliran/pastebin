@@ -44,6 +44,9 @@ class ApiSession:
     async def delete(self, path, **kwargs):
         return await self.request("DELETE", path, **kwargs)
 
+    async def patch(self, path, **kwargs):
+        return await self.request("PATCH", path, **kwargs)
+
     async def request(self, method, path, **kwargs):
         r = self._client.request(method, f"{self._base_url}/{path}", timeout=self._timeout, **kwargs)
         return ApiResponse(r)

@@ -1,12 +1,19 @@
 import pytest
-from dateutil.parser import isoparse
 from shared.utils.upload_paste import *
 from shared.utils.client import Client
 
 @pytest.fixture
 def api_upload_paste(api_upload_create_url_raw, s3_upload, api_upload_submit_raw, auth_client):
-    async def _impl(paste_text: str, *, expires_in: str = None, client: Client = auth_client) -> UploadPasteResult:
-        create_url = await api_upload_create_url_raw(expires_in=expires_in, client=client)
+    async def _impl(paste_text: str, *,
+            expires_in: str = None,
+            visibility: str = None,
+            private_perms_add: list[str] = None,
+            client: Client = auth_client
+        ) -> UploadPasteResult:
+        create_url = await api_upload_create_url_raw(
+            expires_in=expires_in, visibility=visibility,
+            private_perms_add=private_perms_add, client=client
+        )
         assert create_url.status == 201
         json = create_url.json()
         presigned_url = json['presigned_url']

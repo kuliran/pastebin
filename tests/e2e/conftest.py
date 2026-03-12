@@ -31,6 +31,7 @@ pytest_plugins = [
     'shared.fixtures.api_get_paste',
     'shared.fixtures.api_upload_paste_raw',
     'shared.fixtures.api_delete_paste',
+    'shared.fixtures.api_patch_paste',
     'fixtures.auth',
     'fixtures.api_upload_paste',
 ]
