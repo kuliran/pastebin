@@ -51,7 +51,9 @@ add_library(
     src/handlers/upload_create_url.cpp
     src/handlers/upload_submit.cpp
     src/handlers/delete_paste.cpp
+    src/handlers/patch_paste.cpp
     src/utils/id_gen.cpp
+    src/utils/handle_paste_privacy_json.cpp
 )
 target_link_libraries(
     ${PROJECT_NAME}_objs

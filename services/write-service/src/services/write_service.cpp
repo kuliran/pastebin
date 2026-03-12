@@ -31,10 +31,13 @@ WriteService::WriteService(const components::ComponentConfig& config, const comp
 {}
 
 utils::expected<CreateUploadPresignedUrlResult, CreateUploadPresignedUrlError> WriteService::CreateUploadPresignedUrl(
-    std::string user_id, UploadPasteLifetime lifetime) const {
+    std::string user_id, UploadPasteLifetime lifetime, PastePrivacySettings privacy) const
+{
     auto expires_in = ToDuration(lifetime);
     if (!expires_in)
         return {CreateUploadPresignedUrlError::kInvalidLifetimeParam};
+
+    PasteVisibility visibility = privacy.visibility ? *privacy.visibility : PasteVisibility::kPublic;
 
     auto now = std::chrono::system_clock::now();
     auto expires_at = now + *expires_in;
@@ -43,28 +46,39 @@ utils::expected<CreateUploadPresignedUrlResult, CreateUploadPresignedUrlError> W
         .owner_user_id = std::move(user_id),
         .created_at = storages::postgres::TimePointTz(now),
         .expires_at = storages::postgres::TimePointTz(expires_at),
+        .visibility = visibility,
         .size_bytes = 0, // is set when submit validations are done
     };
 
     for (int i = 0; i <= kIdCollisionRetries; ++i) {
         std::string paste_id = id_gen::GenId();
         tracing::Span::CurrentSpan().AddTag("paste_id", paste_id); // distributed tracing
-
+        
         auto presigned_url = blob_repo_.CreatePresignedPut(paste_id, kPresignedPutUrlTtl);
-
         metadata.id = std::move(paste_id);
-        auto metadata_err = metadata_repo_.CreatePendingUpload(metadata);
+
+        auto unit = metadata_repo_.BeginUnit();
+
+        auto metadata_err = metadata_repo_.CreatePendingUpload(unit, metadata);
         if (metadata_err) {
             switch (*metadata_err) {
                 case CreatePendingUploadError::kUserRateLimitExceeded:
                     return {CreateUploadPresignedUrlError::kUserRateLimitExceeded};
-                case CreatePendingUploadError::kIdCollision:
-                    continue;
-                default:
-                    return {CreateUploadPresignedUrlError::kDbError};
+                case CreatePendingUploadError::kIdCollision: continue;
+                case CreatePendingUploadError::kDbError: return {CreateUploadPresignedUrlError::kDbError};
             }
         }
 
+        if (visibility == PasteVisibility::kPrivate && privacy.private_perms_add && !privacy.private_perms_add->empty()) {
+            auto err = metadata_repo_.PastePrivatePermsAdd(unit, metadata.id , std::move(*privacy.private_perms_add));
+            if (err) {
+                switch (*err) {
+                    case PastePrivatePermsAddRepoError::kDbError: return {CreateUploadPresignedUrlError::kDbError};
+                }
+            }
+        }
+
+        unit.Commit();
         return dto::CreateUploadPresignedUrlResult{
             .presigned_url = std::move(presigned_url)
         };
@@ -75,36 +89,34 @@ utils::expected<CreateUploadPresignedUrlResult, CreateUploadPresignedUrlError> W
 }
 
 userver::utils::expected<SubmitUploadResult, SubmitUploadError>
-    WriteService::SubmitUpload(std::string paste_id, std::string_view user_id) const {
-
+WriteService::SubmitUpload(std::string paste_id, std::string_view user_id) const
+{
     auto blob_s3_meta = userver::utils::Async("get_blob_metadata", [this, &paste_id] {
         return blob_repo_.GetPendingBlobMetadataBlocking(paste_id);
     }).Get();
     if (!blob_s3_meta) {
         switch (blob_s3_meta.error()) {
-            case GetPendingBlobMetadataError::kNotFound: {
+            case GetPendingBlobMetadataError::kNotFound:
                 LOG_DEBUG() << "GetPendingBlobMetadataError NotFound paste_id=" << paste_id << " user_id=" << user_id;
                 return {SubmitUploadError::kBlobNotExists};
-            }
-            default: return {SubmitUploadError::kDbError};
+            case GetPendingBlobMetadataError::kDbError: return {SubmitUploadError::kDbError};
         }
     }
-    if (blob_s3_meta.value().size_bytes == 0) 
-        return {SubmitUploadError::kBadBlobContent};
-    if (blob_s3_meta.value().size_bytes > kMaxBlobSizeBytes)
-        return {SubmitUploadError::kBlobTooLarge};
+
+    if (blob_s3_meta.value().size_bytes == 0) return {SubmitUploadError::kBadBlobContent};
+    if (blob_s3_meta.value().size_bytes > kMaxBlobSizeBytes) return {SubmitUploadError::kBlobTooLarge};
 
     auto blob_submit = userver::utils::Async("submit_blob", [this, &paste_id, &version_id = blob_s3_meta.value().version_id] {
         return blob_repo_.SubmitBlobBlocking(paste_id, std::move(version_id));
     }).Get();
     if (!blob_submit) {
         switch (blob_submit.error()) {
-            case SubmitBlobError::kNotFound: {
-                LOG_DEBUG() << "SubmitBlobError NotFound paste_id=" << paste_id << " user_id=" << user_id
+            case SubmitBlobError::kNotFound:
+                LOG_DEBUG()
+                    << "SubmitBlobError NotFound paste_id=" << paste_id << " user_id=" << user_id
                     << " version_id=" << blob_s3_meta.value().version_id;
                 return {SubmitUploadError::kBlobNotExists};
-            }
-            default: return {SubmitUploadError::kDbError};
+            case SubmitBlobError::kDbError: return {SubmitUploadError::kDbError};
         }
     }
 
@@ -116,33 +128,90 @@ userver::utils::expected<SubmitUploadResult, SubmitUploadError>
     );
     if (metadata_err) {
         switch (*metadata_err) {
-            case SubmitUploadMetadataError::kConflict: {
+            case SubmitUploadMetadataError::kConflict:
                 LOG_DEBUG() << "SubmitUploadMetadataError Conflict paste_id=" << paste_id << " user_id=" << user_id;
                 return {SubmitUploadError::kConflict};
-            }
-            default: return {SubmitUploadError::kDbError};
+            case SubmitUploadMetadataError::kDbError: return {SubmitUploadError::kDbError};
         }
     }
 
     return SubmitUploadResult{};
 }
 
-utils::expected<DeletePasteResult, DeletePasteError> WriteService::DeletePaste(const std::string_view& id,
-    const std::string_view& user_id) const {
-    if (id.empty() || id.size() > 128)
-        return {DeletePasteError::kInvalidId};
+utils::expected<DeletePasteResult, DeletePasteError>
+WriteService::DeletePaste(std::string_view paste_id, std::string_view user_id) const
+{
+    auto is_owner_err = metadata_repo_.IsPasteOwner(paste_id, user_id);
+    if (is_owner_err) {
+        switch (*is_owner_err) {
+            case IsPasteOwnerError::kNotExists: return {DeletePasteError::kNotExists};
+            case IsPasteOwnerError::kNotOwner: return {DeletePasteError::kUnauthorized};
+            case IsPasteOwnerError::kDbError: return {DeletePasteError::kDbError};
+        }
+    }
 
-    auto metadata_err = metadata_repo_.DeletePasteMetadata(id, user_id);
+    auto metadata_err = metadata_repo_.DeletePasteMetadata(paste_id);
     if (metadata_err) {
         switch (*metadata_err) {
-            case DeletePasteMetadataError::kUnauthorized: return {DeletePasteError::kUnauthorized};
             case DeletePasteMetadataError::kAlreadySoftDeleted: return {DeletePasteError::kAlreadySoftDeleted};
-            case DeletePasteMetadataError::kNotExists: return {DeletePasteError::kNotExists};
-            default: return {DeletePasteError::kDbError};
+            case DeletePasteMetadataError::kDbError: return {DeletePasteError::kDbError};
         }
     }
 
     return dto::DeletePasteResult();
+}
+
+userver::utils::expected<PatchPastePrivacyResult, PatchPastePrivacyError>
+WriteService::PatchPastePrivacy(
+    std::string_view paste_id, std::string_view user_id, PastePrivacySettings privacy) const
+{
+    if (!privacy.visibility
+        && (!privacy.private_perms_add || privacy.private_perms_add->empty())
+        && (!privacy.private_perms_rm || privacy.private_perms_rm->empty())) {
+        return {PatchPastePrivacyError::kEmptyRequest};
+    }
+
+    auto is_owner_err = metadata_repo_.IsPasteOwner(paste_id, user_id);
+    if (is_owner_err) {
+        switch (*is_owner_err) {
+            case IsPasteOwnerError::kNotExists: return {PatchPastePrivacyError::kNotExists};
+            case IsPasteOwnerError::kNotOwner: return {PatchPastePrivacyError::kUnauthorized};
+            case IsPasteOwnerError::kDbError: return {PatchPastePrivacyError::kDbError};
+        }
+    }
+
+    auto unit = metadata_repo_.BeginUnit();
+    if (privacy.visibility) {
+        auto patch_err = metadata_repo_.PatchPasteVisibility(unit, paste_id, *privacy.visibility);
+        if (patch_err) {
+            switch (*patch_err) {
+                case PatchPasteVisibilityRepoError::kNotExists: return {PatchPastePrivacyError::kNotExists};
+                case PatchPasteVisibilityRepoError::kDbError: return {PatchPastePrivacyError::kDbError};
+            }
+        }
+    }
+
+    if (!privacy.visibility || *privacy.visibility == PasteVisibility::kPrivate) {
+        if (privacy.private_perms_rm && !privacy.private_perms_rm->empty()) {
+            auto patch_err = metadata_repo_.PastePrivatePermsRm(unit, paste_id, std::move(*privacy.private_perms_rm));
+            if (patch_err) {
+                switch (*patch_err) {
+                    case PastePrivatePermsAddRepoError::kDbError: return {PatchPastePrivacyError::kDbError};
+                }
+            }
+        }
+        if (privacy.private_perms_add && !privacy.private_perms_add->empty()) {
+            auto patch_err = metadata_repo_.PastePrivatePermsAdd(unit, paste_id, std::move(*privacy.private_perms_add));
+            if (patch_err) {
+                switch (*patch_err) {
+                    case PastePrivatePermsAddRepoError::kDbError: return {PatchPastePrivacyError::kDbError};
+                }
+            }
+        }
+    }
+
+    unit.Commit();
+    return dto::PatchPastePrivacyResult{};
 }
 
 }

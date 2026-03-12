@@ -21,6 +21,7 @@
 #include "handlers/upload_create_url.hpp"
 #include "handlers/upload_submit.hpp"
 #include "handlers/delete_paste.hpp"
+#include "handlers/patch_paste.hpp"
 
 int main(int argc, char* argv[]) {
     userver::server::handlers::auth::RegisterAuthCheckerFactory<jwt_wrapper::JwtCheckerFactory>();
@@ -43,6 +44,7 @@ int main(int argc, char* argv[]) {
             .Append<write_service::UploadCreateUrl>()
             .Append<write_service::UploadSubmit>()
             .Append<write_service::DeletePaste>()
+            .Append<write_service::PatchPaste>()
         ;
 
     return userver::utils::DaemonMain(argc, argv, component_list);

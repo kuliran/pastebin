@@ -30,21 +30,10 @@ formats::json::Value DeletePaste::
     auto result = write_service_.DeletePaste(id, user_id);
     if (!result) {
         switch (result.error()) {
-            case DeletePasteError::kInvalidId: {
-                request.SetResponseStatus(HttpStatus::kBadRequest);
-                return {};
-            }
-            case DeletePasteError::kUnauthorized: {
-                request.SetResponseStatus(HttpStatus::kForbidden);
-                return {};
-            }
+            case DeletePasteError::kUnauthorized: { request.SetResponseStatus(HttpStatus::kForbidden); return {}; }
             case DeletePasteError::kNotExists:
-            case DeletePasteError::kAlreadySoftDeleted:
-                break;
-            default: {
-                request.SetResponseStatus(HttpStatus::kInternalServerError);
-                return {};
-            }
+            case DeletePasteError::kAlreadySoftDeleted: break;
+            case DeletePasteError::kDbError: { request.SetResponseStatus(HttpStatus::kInternalServerError); return {}; }
         }
     }
 

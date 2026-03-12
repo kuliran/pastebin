@@ -73,7 +73,7 @@ components_manager:
             path: /api/v2/paste/create-url
             method: POST
             task_processor: main-task-processor
-            max_request_size: 1024 # 1KB
+            max_request_size: 4096 # 4KB
             auth:
                 type: bearer
 
@@ -90,6 +90,14 @@ components_manager:
             method: DELETE
             task_processor: main-task-processor
             max_request_size: 1024 # 1KB
+            auth:
+                type: bearer
+
+        handler-patch-paste:
+            path: /api/v2/paste/patch/{id}
+            method: PATCH
+            task_processor: main-task-processor
+            max_request_size: 4096 # 4KB
             auth:
                 type: bearer
 

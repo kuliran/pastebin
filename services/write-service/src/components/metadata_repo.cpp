@@ -7,6 +7,7 @@
 using namespace userver;
 
 namespace write_service {
+using UnitOfWork = MetadataRepo::UnitOfWork;
 
 MetadataRepo::MetadataRepo(const components::ComponentConfig& config, const components::ComponentContext& component_context)
     : components::LoggableComponentBase(config, component_context)
@@ -16,15 +17,18 @@ MetadataRepo::MetadataRepo(const components::ComponentConfig& config, const comp
     , submit_limit_(config["upload_rate_limit_submit_max"].As<std::int32_t>())
 {}
 
-std::optional<CreatePendingUploadError> MetadataRepo::CreatePendingUpload(const PasteMetadata& metadata) const {
+UnitOfWork MetadataRepo::BeginUnit() {
+    return pg_cluster_->Begin(
+        storages::postgres::ClusterHostType::kMaster,
+        storages::postgres::TransactionOptions{}
+    );
+}
+
+std::optional<CreatePendingUploadError> MetadataRepo::CreatePendingUpload(UnitOfWork& u, const PasteMetadata& metadata) const {
     try {
         LOG_DEBUG() << "creating upload url user_id=" << metadata.owner_user_id;
-        auto transaction = pg_cluster_->Begin(
-            storages::postgres::ClusterHostType::kMaster,
-            storages::postgres::TransactionOptions{}
-        );
 
-        auto rate_limit_result = transaction.Execute(R"~~~(
+        auto rate_limit_result = u.Execute(R"~~~(
             WITH params AS (
                 SELECT make_interval(secs => $2) AS window_duration
             )
@@ -47,20 +51,23 @@ std::optional<CreatePendingUploadError> MetadataRepo::CreatePendingUpload(const 
             metadata.owner_user_id,
             rate_limit_window_duration_s_
         );
-        auto [upload_submit_cnt, upload_create_url_cnt] = rate_limit_result.AsSingleRow<std::tuple<int32_t, int32_t>>(storages::postgres::kRowTag);
+        auto [upload_submit_cnt, upload_create_url_cnt] =
+            rate_limit_result.AsSingleRow<std::tuple<int32_t, int32_t>>(storages::postgres::kRowTag);
         if (upload_submit_cnt > submit_limit_ || upload_create_url_cnt > create_url_limit_) {
-            LOG_DEBUG() << "rate limit exceeded: submit_cnt=" << upload_submit_cnt << " create_url_cnt=" << upload_create_url_cnt;
+            LOG_DEBUG()
+                << "rate limit exceeded: submit_cnt=" << upload_submit_cnt
+                << " create_url_cnt=" << upload_create_url_cnt;
             return {CreatePendingUploadError::kUserRateLimitExceeded};
         }
 
-        const auto result = pg_cluster_->Execute(
-            storages::postgres::ClusterHostType::kMaster,
+        const auto result = u.Execute(
             "INSERT INTO pastes.metadata "
-            "(id, owner_user_id, created_at, expires_at, size_bytes, status) "
-            "VALUES ($1, $2, $3, $4, $5, 'pending') "
+            "(id, owner_user_id, visibility, created_at, expires_at, size_bytes, status) "
+            "VALUES ($1, $2, $3, $4, $5, $6, 'pending') "
             "ON CONFLICT (id) DO NOTHING",
             metadata.id,
             metadata.owner_user_id,
+            metadata.visibility,
             metadata.created_at,
             metadata.expires_at,
             metadata.size_bytes
@@ -68,7 +75,6 @@ std::optional<CreatePendingUploadError> MetadataRepo::CreatePendingUpload(const 
         if (result.RowsAffected() == 0)
             return {CreatePendingUploadError::kIdCollision};
 
-        transaction.Commit();
         return std::nullopt;
     } catch(const storages::postgres::UniqueViolation& e) {
         // In case of race condition
@@ -80,8 +86,9 @@ std::optional<CreatePendingUploadError> MetadataRepo::CreatePendingUpload(const 
     }
 }
 
-std::optional<SubmitUploadMetadataError> MetadataRepo::SubmitUpload(std::string_view paste_id, std::string_view version_id,
-    std::string_view user_id, std::int32_t size_bytes) const {
+std::optional<SubmitUploadMetadataError> MetadataRepo::SubmitUpload(
+    std::string_view paste_id, std::string_view version_id, std::string_view user_id, std::int32_t size_bytes) const
+{
     try {
         const auto result = pg_cluster_->Execute(
             storages::postgres::ClusterHostType::kMaster,
@@ -93,10 +100,7 @@ std::optional<SubmitUploadMetadataError> MetadataRepo::SubmitUpload(std::string_
             paste_id,
             user_id
         );
-
-        if (result.RowsAffected() == 0) {
-            return {SubmitUploadMetadataError::kConflict};
-        }
+        if (result.RowsAffected() == 0) return {SubmitUploadMetadataError::kConflict};
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
         return {SubmitUploadMetadataError::kDbError};
@@ -105,40 +109,95 @@ std::optional<SubmitUploadMetadataError> MetadataRepo::SubmitUpload(std::string_
     return std::nullopt;
 }
 
-std::optional<DeletePasteMetadataError>
-    MetadataRepo::DeletePasteMetadata(const std::string_view& id, const std::string_view& user_id) const {
+std::optional<IsPasteOwnerError> MetadataRepo::IsPasteOwner(std::string_view id, std::string_view user_id) const {
     try {
-        auto transaction = pg_cluster_->Begin(
+        auto result = pg_cluster_->Execute(
             storages::postgres::ClusterHostType::kMaster,
-            storages::postgres::TransactionOptions{}
-        );
-
-        auto result = transaction.Execute(
-            "SELECT owner_user_id, status "
+            "SELECT owner_user_id "
             "FROM pastes.metadata "
             "WHERE id = $1",
             id
         );
-        if (result.IsEmpty())
-            return {DeletePasteMetadataError::kNotExists};
+        if (result.IsEmpty()) return {IsPasteOwnerError::kNotExists};
+        if (result.AsSingleRow<std::string>() != user_id) return {IsPasteOwnerError::kNotOwner};
+    } catch(const storages::postgres::Error& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {IsPasteOwnerError::kDbError};
+    }
+    return std::nullopt;
+}
 
-        auto [owner_user_id, status] = result.AsSingleRow<std::tuple<std::string, PasteStatus>>(storages::postgres::kRowTag);
-        if (user_id != owner_user_id)
-            return {DeletePasteMetadataError::kUnauthorized};
-        if (status == PasteStatus::kSoftDeleted)
-            return {DeletePasteMetadataError::kAlreadySoftDeleted};
-
-        transaction.Execute(
+std::optional<DeletePasteMetadataError> MetadataRepo::DeletePasteMetadata(std::string_view id) const {
+    try {
+        auto result = pg_cluster_->Execute(
+            storages::postgres::ClusterHostType::kMaster,
             "UPDATE pastes.metadata "
             "SET status = 'deleted' "
             "WHERE id = $1",
             id
         );
-        transaction.Commit();
-        return std::nullopt;
+        if (result.IsEmpty()) return {DeletePasteMetadataError::kAlreadySoftDeleted};
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
         return {DeletePasteMetadataError::kDbError};
+    }
+
+    return std::nullopt;
+}
+
+std::optional<PatchPasteVisibilityRepoError> MetadataRepo::PatchPasteVisibility(
+    UnitOfWork& u, std::string_view id, PasteVisibility visibility) const
+{
+    try {
+        auto result = u.Execute(
+            "UPDATE pastes.metadata "
+            "SET visibility = $2 "
+            "WHERE id = $1",
+            id, visibility
+        );
+
+        if (result.RowsAffected() == 0)
+            return {PatchPasteVisibilityRepoError::kNotExists};
+
+        return std::nullopt;
+    } catch(const storages::postgres::Error& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {PatchPasteVisibilityRepoError::kDbError};
+    }
+
+    return std::nullopt;
+}
+
+std::optional<PastePrivatePermsAddRepoError> MetadataRepo::PastePrivatePermsAdd(
+    UnitOfWork& u, std::string_view id, std::vector<std::string> users) const
+{
+    try {
+        u.Execute(
+            "INSERT INTO pastes.private_permissions (paste_id, user_id) "
+            "SELECT $1, unnest($2::TEXT[]) "
+            "ON CONFLICT DO NOTHING",
+            id, std::move(users)
+        );
+    } catch(const storages::postgres::Error& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {PastePrivatePermsAddRepoError::kDbError};
+    }
+
+    return std::nullopt;
+}
+
+std::optional<PastePrivatePermsRmRepoError> MetadataRepo::PastePrivatePermsRm(
+    UnitOfWork& u, std::string_view id, std::vector<std::string> users) const
+{
+    try {
+        u.Execute(
+            "DELETE FROM pastes.private_permissions "
+            "WHERE paste_id = $1 AND user_id = ANY($2::TEXT[])",
+            id, std::move(users)
+        );
+    } catch(const storages::postgres::Error& e) {
+        LOG_ERROR() << "DB error: " << e.what();
+        return {PastePrivatePermsRmRepoError::kDbError};
     }
 
     return std::nullopt;

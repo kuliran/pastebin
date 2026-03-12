@@ -1,8 +1,6 @@
 #pragma once
 
-#include <string>
-#include <chrono>
-#include <optional>
+#include "models/paste_metadata.hpp"
 
 namespace write_service::dto {
 
@@ -50,11 +48,26 @@ struct DeletePasteResult {
     DeletePasteResult() = default;
 };
 enum class DeletePasteError {
-    kInvalidId,
     kNotExists,
     kUnauthorized,
     kAlreadySoftDeleted,
     kDbError,
+};
+
+struct PatchPastePrivacyResult {
+    PatchPastePrivacyResult() = default;
+};
+enum class PatchPastePrivacyError {
+    kEmptyRequest,
+    kNotExists,
+    kUnauthorized,
+    kDbError,
+};
+
+struct PastePrivacySettings {
+    std::optional<PasteVisibility> visibility;
+    std::optional<std::vector<std::string>> private_perms_add;
+    std::optional<std::vector<std::string>> private_perms_rm;
 };
 
 }

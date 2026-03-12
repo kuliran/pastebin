@@ -1,4 +1,5 @@
 #include "handlers/upload_create_url.hpp"
+#include "utils/handle_paste_privacy_json.hpp"
 #include "services/dto/paste_dto_json.hpp" // IWYU pragma: keep; ADL json Serialize provider
 
 using namespace userver;
@@ -25,46 +26,35 @@ formats::json::Value UploadCreateUrl::
     HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext& ctx)
         const {
     using userver::server::http::HttpStatus;
-
-    if (!request_json.IsObject()
-        || (request_json.HasMember("expires_in") && !request_json["expires_in"].IsString())) {
-        request.SetResponseStatus(HttpStatus::kBadRequest);
-        return {};
-    }
+    if (!request_json.IsObject()) { request.SetResponseStatus(HttpStatus::kBadRequest); return {}; }
 
     dto::UploadPasteLifetime lifetime;
-    auto expires_in = request_json["expires_in"].As<std::optional<std::string>>();
-    if (!expires_in) {
-        lifetime = dto::UploadPasteLifetime::k1Week;
-    } else {
-        auto it = kLifetimeMap.find(*expires_in);
-        if (it == kLifetimeMap.end()) {
-            request.SetResponseStatus(HttpStatus::kBadRequest);
-            return {};
-        }
+    if (auto param = request_json["expires_in"]; param.IsString()) {
+        auto v = param.As<std::string>();
+        auto it = kLifetimeMap.find(v);
+        if (it == kLifetimeMap.end()) { request.SetResponseStatus(HttpStatus::kBadRequest); return {}; }
         lifetime = it->second;
+    } else {
+        lifetime = dto::UploadPasteLifetime::k1Week;
     }
+    
+    auto privacy_settings = HandlePastePrivacyJson(request_json);
+    if (!privacy_settings) { request.SetResponseStatus(HttpStatus::kBadRequest); return {}; }
 
     const std::string& user_id = ctx.GetData<std::string>("user_id");
-
     auto span = tracing::Span::CurrentSpan().CreateChild("upload_create_url_http");
     span.AddTag("user_id", user_id);
 
-    auto result = write_service_.CreateUploadPresignedUrl(user_id, lifetime);
+    auto result = write_service_.CreateUploadPresignedUrl(user_id, lifetime, std::move(privacy_settings.value()));
     if (!result) {
         switch (result.error()) {
-            case dto::CreateUploadPresignedUrlError::kInvalidLifetimeParam: {
-                request.SetResponseStatus(HttpStatus::kBadRequest);
-                return {};
-            }
+            case dto::CreateUploadPresignedUrlError::kInvalidLifetimeParam: { request.SetResponseStatus(HttpStatus::kBadRequest); return {}; }
             case dto::CreateUploadPresignedUrlError::kUserRateLimitExceeded: {
                 request.SetResponseStatus(HttpStatus::kTooManyRequests);
                 return formats::json::MakeObject("msg", "paste upload rate limit exceeded");
             }
-            default: {
-                request.SetResponseStatus(HttpStatus::kInternalServerError);
-                return {};
-            }
+            case dto::CreateUploadPresignedUrlError::kIdCollisionRetryExceeded:
+            case dto::CreateUploadPresignedUrlError::kDbError: { request.SetResponseStatus(HttpStatus::kInternalServerError); return {}; }
         }
     }
 
