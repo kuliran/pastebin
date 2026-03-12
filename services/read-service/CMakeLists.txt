@@ -4,6 +4,17 @@ project(read_service CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DownloadUserver)
 
+if(DEFINED ENV{ENABLE_TESTSUITE} AND NOT $ENV{ENABLE_TESTSUITE})
+    set(ENABLE_TESTSUITE OFF)
+    set(USERVER_FEATURE_TESTSUITE OFF CACHE BOOL "" FORCE)
+    set(USERVER_FEATURE_UTEST OFF CACHE BOOL "" FORCE)
+    set(USERVER_FEATURE_POSTGRESQL OFF CACHE BOOL "" FORCE)
+    message("ENABLE_TESTSUITE=OFF  ->  testsuite is disabled")
+else()
+    set(ENABLE_TESTSUITE ON)
+endif()
+
+
 find_package(
     userver
     COMPONENTS core
@@ -57,9 +68,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_objs)
 # Benchmarks
 
 # Functional testing
-userver_testsuite_add_simple(
-    REQUIREMENTS ${CMAKE_SOURCE_DIR}/tests/requirements.txt
-)
+if(ENABLE_TESTSUITE)
+    userver_testsuite_add_simple(
+        REQUIREMENTS ${CMAKE_SOURCE_DIR}/tests/requirements.txt
+    )
+endif()
 
 # Install
 include(GNUInstallDirs)

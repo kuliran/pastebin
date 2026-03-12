@@ -38,8 +38,8 @@
       "cacheVariables": {
         "CMAKE_C_COMPILER": "clang",
         "CMAKE_CXX_COMPILER": "clang++",
-        "USERVER_FEATURE_POSTGRESQL": "ON", 
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "USERVER_FEATURE_POSTGRESQL": "ON",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_INSTALLED_DIR": "$env{VCPKG_INSTALLED_DIR}",
         "VCPKG_MANIFEST_DIR": "$env{VCPKG_MANIFEST_DIR}",

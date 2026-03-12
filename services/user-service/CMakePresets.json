@@ -36,9 +36,8 @@
       "hidden": true,
       "generator": "Ninja",
       "cacheVariables": {
-        "USERVER_FEATURE_POSTGRESQL": "ON", 
-        "USERVER_FEATURE_MONGODB": "ON", 
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "USERVER_FEATURE_POSTGRESQL": "ON"
       }
     }
   ]

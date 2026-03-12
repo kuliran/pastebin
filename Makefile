@@ -8,9 +8,9 @@ e2e-install:
 
 .PHONY: build
 build:
-	cd services/read-service && make docker-cmake-release && make docker-build-release
-	cd services/write-service && make docker-cmake-release && make docker-build-release
-	cd services/user-service && make docker-cmake-release && make docker-build-release
+	cd services/read-service && make docker-cmake-release DOCKER_ENV="ENABLE_TESTSUITE=OFF" && make docker-build-release
+	cd services/write-service && make docker-cmake-release DOCKER_ENV="ENABLE_TESTSUITE=OFF" && make docker-build-release
+	cd services/user-service && make docker-cmake-release DOCKER_ENV="ENABLE_TESTSUITE=OFF" && make docker-build-release
 
 # Run all containers for e2e tests
 .PHONY: e2e-up
