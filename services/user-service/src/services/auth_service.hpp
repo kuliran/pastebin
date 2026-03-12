@@ -16,11 +16,13 @@ public:
     AuthService(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::utils::expected<dto::CreateUserResult, dto::CreateUserError>
-        CreateUser(const dto::UserCredentials& creds) const;
+    CreateUser(const dto::UserCredentials& creds) const;
+
     userver::utils::expected<dto::CreateSessionResult, dto::CreateSessionError>
-        CreateSession(const dto::UserCredentials& creds) const;
+    CreateSession(const dto::UserCredentials& creds) const;
+    
     userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
-        RefreshSession(const std::string& refresh_tk) const;
+    RefreshSession(const std::string& refresh_tk) const;
 
     // userver::utils::expected<bool, dto::GetFriendsError> AreFriends(std::string_view user_id, std::string_view friend_id) const;
     // userver::utils::expected<dto::GetFriendsResult, dto::GetFriendsError> GetFriends(std::string_view user_id) const;
