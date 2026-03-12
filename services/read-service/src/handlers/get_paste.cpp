@@ -29,23 +29,14 @@ formats::json::Value GetPaste::
     auto result = read_service_.GetPaste(id, user_id);
     if (!result) {
         switch (result.error()) {
-            case GetPasteError::kUnauthorized: {
-                request.SetResponseStatus(HttpStatus::kForbidden);
-                return {};
-            }
+            case GetPasteError::kUnauthorized: { request.SetResponseStatus(HttpStatus::kForbidden); return {}; }
             case GetPasteError::kSoftExpired:
-            case GetPasteError::kNotExists: {
-                request.SetResponseStatus(HttpStatus::NotFound);
-                return {};
-            }
-            default: {
-                request.SetResponseStatus(HttpStatus::InternalServerError);
-                return {};
-            }
+            case GetPasteError::kNotExists: { request.SetResponseStatus(HttpStatus::NotFound); return {}; }
+            case GetPasteError::kDbError: { request.SetResponseStatus(HttpStatus::InternalServerError); return {}; }
         }
     }
 
     return formats::json::ValueBuilder(std::move(result.value())).ExtractValue();
 }
 
-}  // namespace paste_service
+}  // namespace read_service

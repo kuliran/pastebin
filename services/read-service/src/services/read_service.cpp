@@ -19,10 +19,8 @@ utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string
     const auto metadata = metadata_repo_.GetPasteMetadata(id);
     if (!metadata) {
         switch (metadata.error()) {
-            case GetPasteMetadataError::kNotFound:
-                return {GetPasteError::kNotExists};
-            case GetPasteMetadataError::kDbError:
-                return {GetPasteError::kDbError};
+            case GetPasteMetadataError::kNotFound: return {GetPasteError::kNotExists};
+            case GetPasteMetadataError::kDbError: return {GetPasteError::kDbError};
         }
     }
 
@@ -35,7 +33,8 @@ utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string
         return {GetPasteError::kUnauthorized};
     } else if (metadata.value().visibility == PasteVisibility::kPrivate) {
         if (user_id != metadata.value().owner_user_id
-            && !metadata_repo_.UserHasAccessToPrivatePaste(id, user_id)) {
+            && !metadata_repo_.UserHasAccessToPrivatePaste(id, user_id)
+        ) {
             return {GetPasteError::kUnauthorized};
         }
     }
