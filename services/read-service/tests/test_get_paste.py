@@ -21,8 +21,23 @@ async def test_expired(api_get_paste_expect_none, raw_insert_paste):
     paste_id = 'abc123'
     paste_text = 'abc'
 
-    await raw_insert_paste(paste_id, paste_text, '-1 second')
+    await raw_insert_paste(paste_id, paste_text, expires_in='-1 second')
     await api_get_paste_expect_none(paste_id)
+
+async def test_private_visibility(api_get_paste_expect_unauth, api_get_paste, raw_insert_paste, raw_patch_paste, new_auth_client):
+    other = new_auth_client('other-user-id')
+
+    res = await raw_insert_paste('abc123', 'abc', visibility='private')
+    await api_get_paste(res.paste_id)
+    await api_get_paste_expect_unauth(res.paste_id, client=other)
+    await raw_patch_paste(res.paste_id, visibility='public')
+    await api_get_paste(res.paste_id, client=other)
+
+    await raw_patch_paste(res.paste_id, visibility='private')
+    await api_get_paste_expect_unauth(res.paste_id, client=other)
+
+    await raw_patch_paste(res.paste_id, private_perms_add=[other._user_id])
+    await api_get_paste(res.paste_id, client=other)
 
 # =========================================
 # ============= LOCAL FIXTURES ============

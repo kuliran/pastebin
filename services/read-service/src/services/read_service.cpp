@@ -16,17 +16,27 @@ ReadService::ReadService(const components::ComponentConfig& config, const compon
 {}
 
 utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string_view id, std::string_view user_id) const {
-    const auto metadata = metadata_repo_.GetPasteMetadata(id, user_id);
+    const auto metadata = metadata_repo_.GetPasteMetadata(id);
     if (!metadata) {
         switch (metadata.error()) {
             case GetPasteMetadataError::kNotFound:
                 return {GetPasteError::kNotExists};
-            case GetPasteMetadataError::kUnauthorized:
-                return {GetPasteError::kUnauthorized};
-            case GetPasteMetadataError::kSoftExpired:
-                return {GetPasteError::kSoftExpired};
-            default:
+            case GetPasteMetadataError::kDbError:
                 return {GetPasteError::kDbError};
+        }
+    }
+
+    if (std::chrono::system_clock::now() >= metadata.value().expires_at) {
+        return {GetPasteError::kSoftExpired};
+    }
+
+    if (metadata.value().visibility == PasteVisibility::kFriends) {
+        // TODO
+        return {GetPasteError::kUnauthorized};
+    } else if (metadata.value().visibility == PasteVisibility::kPrivate) {
+        if (user_id != metadata.value().owner_user_id
+            && !metadata_repo_.UserHasAccessToPrivatePaste(id, user_id)) {
+            return {GetPasteError::kUnauthorized};
         }
     }
 

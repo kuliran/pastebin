@@ -12,13 +12,11 @@ MetadataRepo::MetadataRepo(const components::ComponentConfig& config, const comp
     , pg_cluster_(component_context.FindComponent<components::Postgres>(kDefaultPgComponent).GetCluster())
 {}
 
-utils::expected<PasteMetadata, GetPasteMetadataError>
-    MetadataRepo::GetPasteMetadata(std::string_view id, std::string_view user_id) const {
-    
+utils::expected<PasteMetadata, GetPasteMetadataError> MetadataRepo::GetPasteMetadata(std::string_view id) const {
     try {
         const auto result = pg_cluster_->Execute(
             storages::postgres::ClusterHostType::kSlave,
-            "SELECT id, owner_user_id, created_at, expires_at, size_bytes "
+            "SELECT id, owner_user_id, created_at, expires_at, visibility, size_bytes "
             "FROM pastes.metadata "
             "WHERE id = $1 AND status = 'submitted'",
             id
@@ -28,15 +26,23 @@ utils::expected<PasteMetadata, GetPasteMetadataError>
         }
 
         auto metadata = result.AsSingleRow<PasteMetadata>(storages::postgres::kRowTag);
-        if (std::chrono::system_clock::now() >= metadata.expires_at) {
-            return {GetPasteMetadataError::kSoftExpired};
-        }
-
         return {metadata};
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
         return {GetPasteMetadataError::kDbError};
     }
+}
+
+bool MetadataRepo::UserHasAccessToPrivatePaste(std::string_view id, std::string_view user_id) const {
+    const auto result = pg_cluster_->Execute(
+        storages::postgres::ClusterHostType::kSlave,
+        "SELECT 1 "
+        "FROM pastes.private_permissions "
+        "WHERE paste_id = $1 AND user_id = $2",
+        id,
+        user_id
+    );
+    return !result.IsEmpty();
 }
 
 }

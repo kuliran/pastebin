@@ -12,6 +12,7 @@ pytest_plugins = [
     'shared.fixtures.make_pgsql',
     'shared.fixtures.auth',
     'shared.fixtures.raw_insert_paste',
+    'shared.fixtures.raw_patch_paste',
     'shared.fixtures.api_get_paste',
 ]
 
