@@ -17,7 +17,9 @@ stat $VCPKG_ROOT
 
 mkdir -p $VCPKG_DEFAULT_BINARY_CACHE
 mkdir -p $VCPKG_INSTALLED_DIR
-chown -R $(id -u):$(id -g) $VCPKG_MANIFEST_DIR
+command -v sudo &> /dev/null \
+    && sudo chown -R $(id -u):$(id -g) $VCPKG_MANIFEST_DIR \
+    || chown -R $(id -u):$(id -g) $VCPKG_MANIFEST_DIR
 
 echo "copying from $VCPKG_MANIFEST_DIR/triplets"
 cp $VCPKG_MANIFEST_DIR/triplets/* $VCPKG_ROOT/triplets/
