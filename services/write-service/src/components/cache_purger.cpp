@@ -19,7 +19,7 @@ CachePurger::CachePurger(const components::ComponentConfig& config, const compon
     LOG_INFO() << "Cache purger initialized, nginx url: " << nginx_endpoint_;
 }
 
-void CachePurger::PurgePaste(const std::string_view& paste_id) const {
+void CachePurger::PurgePaste(std::string_view paste_id) const {
     try {
         const std::string url = nginx_endpoint_ + std::string(paste_id);
 

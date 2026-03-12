@@ -4,7 +4,7 @@
 
 namespace user_service::crypto {
 
-std::string HashEncode(const std::string_view& password);
-bool VerifyHash(const std::string_view& password, const std::string_view& encoded);
+std::string HashEncode(std::string_view password);
+bool VerifyHash(std::string_view password, std::string_view encoded);
 
 }

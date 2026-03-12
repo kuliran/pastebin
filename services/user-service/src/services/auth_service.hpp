@@ -22,12 +22,12 @@ public:
     userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
         RefreshSession(const std::string& refresh_tk) const;
 
-    // userver::utils::expected<bool, dto::GetFriendsError> AreFriends(const std::string_view& user_id, const std::string_view& friend_id) const;
-    // userver::utils::expected<dto::GetFriendsResult, dto::GetFriendsError> GetFriends(const std::string_view& user_id) const;
-    // userver::utils::expected<dto::AddFriendResult, dto::AddFriendError> AddFriend(const std::string_view& user_id, const std::string_view& friend_id) const;
-    // userver::utils::expected<dto::RemoveFriendResult, dto::RemoveFriendError> RemoveFriend(const std::string_view& user_id, const std::string_view& friend_id) const;
+    // userver::utils::expected<bool, dto::GetFriendsError> AreFriends(std::string_view user_id, std::string_view friend_id) const;
+    // userver::utils::expected<dto::GetFriendsResult, dto::GetFriendsError> GetFriends(std::string_view user_id) const;
+    // userver::utils::expected<dto::AddFriendResult, dto::AddFriendError> AddFriend(std::string_view user_id, std::string_view friend_id) const;
+    // userver::utils::expected<dto::RemoveFriendResult, dto::RemoveFriendError> RemoveFriend(std::string_view user_id, std::string_view friend_id) const;
 private:
-    static std::string ReadFile(const std::string_view& path) {
+    static std::string ReadFile(std::string_view path) {
         std::ifstream f(path.data());
         if (!f) throw std::runtime_error("cannot open: " + std::string(path));
         return {std::istreambuf_iterator<char>(f), {}};

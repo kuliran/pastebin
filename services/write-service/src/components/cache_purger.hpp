@@ -13,7 +13,7 @@ public:
 
     CachePurger(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
-    void PurgePaste(const std::string_view& id) const;
+    void PurgePaste(std::string_view id) const;
 
     static userver::yaml_config::Schema GetStaticConfigSchema();
 private:

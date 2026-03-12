@@ -13,7 +13,7 @@ static constexpr size_t kSaltLen = 16;
 
 namespace user_service::crypto {
 
-std::string HashEncode(const std::string_view& password) {
+std::string HashEncode(std::string_view password) {
     uint8_t salt[kSaltLen];
     RAND_bytes(salt, kSaltLen);
 
@@ -37,7 +37,7 @@ std::string HashEncode(const std::string_view& password) {
     return encoded; // "$argon2id$v=19$m=65536,t=2,p=1$<salt>$<hash>"
 }
 
-bool VerifyHash(const std::string_view& password, const std::string_view& encoded) {
+bool VerifyHash(std::string_view password, std::string_view encoded) {
     int rc = argon2id_verify(encoded.data(), password.data(), password.size());
     if (rc == ARGON2_OK) return true;
     if (rc == ARGON2_VERIFY_MISMATCH) return false;
