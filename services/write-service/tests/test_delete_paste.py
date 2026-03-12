@@ -10,7 +10,6 @@ async def test_raw(raw_insert_paste, api_delete_paste):
     paste_text = 'Hello, world!'
 
     await raw_insert_paste(paste_id, paste_text)
-
     await api_delete_paste(paste_id)
 
 async def test_upload_and_delete(api_upload_paste, api_delete_paste):

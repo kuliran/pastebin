@@ -2,13 +2,19 @@ import pytest
 import requests
 from dataclasses import dataclass
 from dateutil.parser import isoparse
-from shared.fixtures.raw_get_paste import GetPasteResult
 from datetime import datetime
 from shared.utils.client import Client
 
 @dataclass
 class GetPasteUrlResult:
     presigned_url: str
+    size_bytes: int
+    created_at_utc: datetime
+    expires_at_utc: datetime
+
+@dataclass
+class GetPasteResult:
+    data: str
     size_bytes: int
     created_at_utc: datetime
     expires_at_utc: datetime

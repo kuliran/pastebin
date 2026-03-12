@@ -6,10 +6,18 @@ from shared.utils.upload_paste import *
 
 @pytest.fixture
 async def api_upload_create_url(pg_cursor, auth_client, api_upload_create_url_raw):
-    async def impl(*, expires_in: str = None, client: Client = auth_client) -> UploadCreateUrlResult:
+    async def impl(*,
+        expires_in: str = None,
+        visibility: str = None,
+        private_perms_add: list[str] = None,
+        client: Client = auth_client
+    ) -> UploadCreateUrlResult:
         now_utc = datetime.now(timezone.utc)
 
-        response = await api_upload_create_url_raw(expires_in=expires_in, client=client)
+        response = await api_upload_create_url_raw(
+            expires_in=expires_in, visibility=visibility,
+            private_perms_add=private_perms_add, client=client
+        )
         assert response.status == 201
         assert 'application/json' in response.headers['Content-Type']
 
@@ -83,9 +91,17 @@ async def api_upload_submit(pg_cursor, minio_server, api_upload_submit_raw, auth
 
 @pytest.fixture
 async def api_upload_paste(api_upload_create_url, api_upload_submit, s3_upload, auth_client):
-    async def impl(text: str, *, expires_in: str = None, client: Client = auth_client) -> UploadPasteResult:
+    async def impl(text: str, *,
+        expires_in: str = None,
+        visibility: str = 'public',
+        private_perms_add: list[str] = [],
+        client: Client = auth_client,
+    ) -> UploadPasteResult:
         # Preparation
-        create_url_res = await api_upload_create_url(expires_in=expires_in, client=client)
+        create_url_res = await api_upload_create_url(
+            expires_in=expires_in, visibility=visibility,
+            private_perms_add=private_perms_add, client=client
+        )
         s3_upload_res = await s3_upload(create_url_res.presigned_url, text)
         submit_res = await api_upload_submit(create_url_res.paste_id, client=client)
 

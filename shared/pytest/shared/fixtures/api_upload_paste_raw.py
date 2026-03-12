@@ -5,10 +5,17 @@ from shared.utils.upload_paste import *
 
 @pytest.fixture
 async def api_upload_create_url_raw(endpoints, auth_client):
-    async def impl(*, expires_in: str = None, client: Client = auth_client):
+    async def impl(*,
+        expires_in: str = None,
+        visibility: str = None,
+        private_perms_add: list[str] = None,
+        client: Client = auth_client
+    ):
         request_json = {}
-        if expires_in is not None:
-            request_json["expires_in"] = expires_in
+        if expires_in is not None: request_json["expires_in"] = expires_in
+        if visibility is not None: request_json["visibility"] = visibility
+        if private_perms_add is not None: request_json["private_perms_add"] = private_perms_add
+
         return await client.post(endpoints['upload_paste_create_url'], json=request_json)
     return impl
 
