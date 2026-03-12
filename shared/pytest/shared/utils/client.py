@@ -18,6 +18,9 @@ class Client:
     async def delete(self, path, **kwargs):
         return await self._auth_request('DELETE', path, **kwargs)
 
+    async def patch(self, path, **kwargs):
+        return await self._auth_request('PATCH', path, **kwargs)
+
     async def _auth_request(self, method, path, **kwargs):
         headers = kwargs.pop('headers', {})
         if self._access_tk is not None:

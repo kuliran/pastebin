@@ -10,4 +10,5 @@ def endpoints():
         'upload_paste_create_url': '/api/v2/paste/create-url',
         'upload_paste_submit': '/api/v2/paste/submit',
         'delete_paste': '/api/v2/paste/delete',
+        'patch_paste': '/api/v2/paste'
     }

@@ -64,3 +64,12 @@ async def api_get_paste_expect_none(auth_client, endpoints):
         assert 'application/json' in response.headers['Content-Type']
         assert response.text == 'null'
     return _get
+
+@pytest.fixture
+async def api_get_paste_expect_unauth(auth_client, endpoints):
+    async def _get(paste_id: str, *, client: Client = auth_client):
+        response = await client.get(endpoints['get_paste_presigned_url'] + f'/{paste_id}')
+        assert response.status == 403
+        assert 'application/json' in response.headers['Content-Type']
+        assert response.text == 'null'
+    return _get

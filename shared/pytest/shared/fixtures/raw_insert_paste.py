@@ -17,8 +17,9 @@ def raw_insert_paste(pg_cursor, minio_server, auth_client):
     async def _insert(
         paste_id: str,
         paste_text: str,
-        expires_in: str = '24 hours',
         *,
+        expires_in: str = '24 hours',
+        visibility: str = 'public',
         client: Client = auth_client
     ) -> RawInsertResult:
         data = paste_text.encode("utf-8")
@@ -43,11 +44,11 @@ def raw_insert_paste(pg_cursor, minio_server, auth_client):
 
         pg_cursor.execute(
             """
-            INSERT INTO pastes.metadata (id, owner_user_id, status, s3_version_id, size_bytes, created_at, expires_at)
-            VALUES (%s, %s, 'submitted', %s, %s, NOW(), NOW() + %s::interval)
+            INSERT INTO pastes.metadata (id, owner_user_id, visibility, status, s3_version_id, size_bytes, created_at, expires_at)
+            VALUES (%s, %s, %s, 'submitted', %s, %s, NOW(), NOW() + %s::interval)
             RETURNING created_at, expires_at
             """,
-            (paste_id, client._user_id, version_id, size_bytes, expires_in)
+            (paste_id, client._user_id, visibility, version_id, size_bytes, expires_in)
         )
         pg_created_at, pg_expires_at = pg_cursor.fetchone()
 

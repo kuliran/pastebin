@@ -69,10 +69,25 @@ def minio_server(tmp_path_factory, make_minio):
 def cleanup_bucket(minio_server, make_minio):
     yield
     s3 = minio_server["client"]
-    response = s3.list_objects_v2(Bucket=make_minio['bucket'])
-    objects = response.get("Contents", [])
-    if objects:
+    bucket = make_minio['bucket']
+    
+    paginator = s3.get_paginator('list_object_versions')
+    objects_to_delete = []
+    
+    for page in paginator.paginate(Bucket=bucket):
+        for version in page.get('Versions', []):
+            objects_to_delete.append({
+                'Key': version['Key'],
+                'VersionId': version['VersionId']
+            })
+        for marker in page.get('DeleteMarkers', []):
+            objects_to_delete.append({
+                'Key': marker['Key'],
+                'VersionId': marker['VersionId']
+            })
+    
+    if objects_to_delete:
         s3.delete_objects(
-            Bucket=make_minio['bucket'],
-            Delete={"Objects": [{"Key": o["Key"]} for o in objects]},
+            Bucket=bucket,
+            Delete={"Objects": objects_to_delete},
         )
