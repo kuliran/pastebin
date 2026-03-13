@@ -32,7 +32,7 @@ formats::json::Value Signup::
     std::string password = request_json["password"].As<std::string>();
 
     auto span = tracing::Span::CurrentSpan().CreateChild("auth_signup_http");
-    
+
     auto result = user_service_.CreateUser(UserCredentials{username, std::move(password)});
     if (!result) {
         switch (result.error()) {
@@ -41,11 +41,9 @@ formats::json::Value Signup::
                 request.SetResponseStatus(HttpStatus::kConflict);
                 return {};
             }
-            default: {
-                LOG_DEBUG() << "CreateUser err: " << static_cast<int>(result.error());
-                request.SetResponseStatus(HttpStatus::InternalServerError);
-                return {};
-            }
+            case CreateUserError::kInvalidPassword:
+            case CreateUserError::kInvalidUsername: { request.SetResponseStatus(HttpStatus::kBadRequest); return {}; }
+            case CreateUserError::kDbError: { request.SetResponseStatus(HttpStatus::InternalServerError); return {}; }
         }
     }
 

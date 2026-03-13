@@ -32,15 +32,9 @@ formats::json::Value Refresh::
     auto result = user_service_.RefreshSession(refresh_tk);
     if (!result) {
         switch (result.error()) {
-            case RefreshSessionError::kUnauthorized: {
-                request.SetResponseStatus(HttpStatus::kUnauthorized);
-                return {};
-            }
-            default: {
-                LOG_DEBUG() << "RefreshSession err: " << static_cast<int>(result.error());
-                request.SetResponseStatus(HttpStatus::InternalServerError);
-                return {};
-            }
+            case RefreshSessionError::kNoUserExists:
+            case RefreshSessionError::kUnauthorized: { request.SetResponseStatus(HttpStatus::kUnauthorized); return {}; }
+            case RefreshSessionError::kDbError: { request.SetResponseStatus(HttpStatus::InternalServerError); return {}; }
         }
     }
 

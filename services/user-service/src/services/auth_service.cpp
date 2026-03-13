@@ -16,12 +16,8 @@ AuthService::AuthService(const components::ComponentConfig& config, const compon
 {}
 
 userver::utils::expected<CreateUserResult, CreateUserError> AuthService::CreateUser(const UserCredentials& creds) const {
-    if (creds.username.size() < 3 || creds.password.size() > 32) {
-        return {CreateUserError::kInvalidUsername};
-    }
-    if (creds.password.size() < 6 || creds.password.size() > 48) {
-        return {CreateUserError::kInvalidPassword};
-    }
+    if (creds.username.size() < 3 || creds.password.size() > 32) return {CreateUserError::kInvalidUsername};
+    if (creds.password.size() < 6 || creds.password.size() > 48) return {CreateUserError::kInvalidPassword};
 
     auto user_id = utils::generators::GenerateUuid();
     auto pwd_hash = user_service::crypto::HashEncode(creds.password);

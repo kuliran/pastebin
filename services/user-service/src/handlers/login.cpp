@@ -37,15 +37,8 @@ formats::json::Value Login::
     if (!result) {
         switch (result.error()) {
             case CreateSessionError::kNoUserExists:
-            case CreateSessionError::kUnauthorized: {
-                request.SetResponseStatus(HttpStatus::kUnauthorized);
-                return {};
-            }
-            default: {
-                LOG_DEBUG() << "CreateSession err: " << static_cast<int>(result.error());
-                request.SetResponseStatus(HttpStatus::InternalServerError);
-                return {};
-            }
+            case CreateSessionError::kUnauthorized: { request.SetResponseStatus(HttpStatus::kUnauthorized); return {}; }
+            case CreateSessionError::kDbError: { request.SetResponseStatus(HttpStatus::InternalServerError); return {}; }
         }
     }
 
