@@ -2,7 +2,9 @@
 When a user wants to upload:
     - User requests /create-url    
         - Generate a random paste_id (cheap)
-        - Check user's rate limit, increment rate count, create a new paste with 'pending' status in the metadata DB
+        - Run a DB transaction:
+            - Check user's rate limit, increment rate count, create a new paste with 'pending' status in the metadata DB
+            - Apply user-provided privacy settings (rollback if input is invalid)
         - CreatePresignedPut url, return the url to user
     - User uploads directly to S3
     - User requests /submit
@@ -51,11 +53,8 @@ utils::expected<CreateUploadPresignedUrlResult, CreateUploadPresignedUrlError> W
     };
 
     for (int i = 0; i <= kIdCollisionRetries; ++i) {
-        std::string paste_id = id_gen::GenId();
-        tracing::Span::CurrentSpan().AddTag("paste_id", paste_id); // distributed tracing
-        
-        auto presigned_url = blob_repo_.CreatePresignedPut(paste_id, kPresignedPutUrlTtl);
-        metadata.id = std::move(paste_id);
+        metadata.id = id_gen::GenId();
+        tracing::Span::CurrentSpan().AddTag("paste_id", metadata.id); // distributed tracing
 
         auto unit = metadata_repo_.BeginUnit();
 
@@ -78,7 +77,9 @@ utils::expected<CreateUploadPresignedUrlResult, CreateUploadPresignedUrlError> W
             }
         }
 
+        auto presigned_url = blob_repo_.CreatePresignedPut(metadata.id, kPresignedPutUrlTtl);
         unit.Commit();
+
         return dto::CreateUploadPresignedUrlResult{
             .presigned_url = std::move(presigned_url)
         };
