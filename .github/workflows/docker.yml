@@ -70,7 +70,7 @@ jobs:
           submodules: true
 
       - name: Download read-service release binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: read-service-binary
           path: services/read-service/build-release/
@@ -78,7 +78,7 @@ jobs:
         run: chmod +x services/read-service/build-release/read_service
 
       - name: Download write-service release binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: write-service-binary
           path: services/write-service/build-release/
@@ -86,7 +86,7 @@ jobs:
         run: chmod +x services/write-service/build-release/write_service
 
       - name: Download user-service release binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: user-service-binary
           path: services/user-service/build-release/
