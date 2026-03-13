@@ -12,7 +12,7 @@ class SignupResult:
 def signup(endpoints, service_client):
     async def _signup(username: str, password: str) -> SignupResult:
         body = {"username": username, "password": password}
-        response = await service_client.post(endpoints['auth_signup'], json=body)
+        response = await service_client.post(endpoints['auth_signup'](), json=body)
         assert response.status == 201
 
         json = response.json()

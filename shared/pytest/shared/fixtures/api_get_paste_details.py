@@ -38,6 +38,6 @@ async def api_get_paste_details(api_get_paste_details_raw, auth_client):
 @pytest.fixture
 async def api_get_paste_details_raw(auth_client, endpoints):
     async def _get(paste_id: str, *, client: Client = auth_client):
-        r = await client.get(endpoints['get_paste_details'] + f'/{paste_id}')
+        r = await client.get(endpoints['get_paste_details'](paste_id))
         return r
     return _get

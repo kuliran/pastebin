@@ -18,7 +18,7 @@ async def auth_client(new_auth_client):
 def new_auth_client(api, endpoints):
     async def _auth_client(username: str, password: str) -> Client:
         api.clear_cookies()
-        r = await api.post(endpoints['auth_signup'], json={'username': username, 'password': password})
+        r = await api.post(endpoints['auth_signup'](), json={'username': username, 'password': password})
         assert r.status == 201
 
         json = r.json()
@@ -63,7 +63,7 @@ def login_raw(api, endpoints):
     async def _login_raw(username: str, password: str):
         api.clear_cookies()
         return await api.post(
-            endpoints['auth_login'],
+            endpoints['auth_login'](),
             json={'username': username, 'password': password},
         )
     return _login_raw
@@ -75,6 +75,6 @@ def auth_refresh_raw(api, endpoints):
         if refresh_tk is not None:
             api.set_cookie('refresh_tk', refresh_tk)
         return await api.post(
-            endpoints['auth_refresh'],
+            endpoints['auth_refresh'](),
         )
     return _auth_refresh_raw

@@ -16,7 +16,7 @@ async def api_upload_create_url_raw(endpoints, auth_client):
         if visibility is not None: request_json["visibility"] = visibility
         if private_perms_add is not None: request_json["private_perms_add"] = private_perms_add
 
-        return await client.post(endpoints['upload_paste_create_url'], json=request_json)
+        return await client.post(endpoints['upload_paste_create_url'](), json=request_json)
     return impl
 
 @pytest.fixture(scope='session')
@@ -46,5 +46,5 @@ async def api_upload_submit_raw(endpoints, auth_client):
     async def impl(paste_id: str, *, client: Client = auth_client):
         request_json = {}
         request_json["paste_id"] = paste_id
-        return await client.post(endpoints['upload_paste_submit'], json=request_json)
+        return await client.post(endpoints['upload_paste_submit'](), json=request_json)
     return impl

@@ -16,7 +16,7 @@ def api_patch_paste(auth_client, endpoints):
         if private_perms_add is not None: json_body["private_perms_add"] = private_perms_add
         if private_perms_rm is not None: json_body["private_perms_rm"] = private_perms_rm
 
-        response = await client.patch(endpoints['patch_paste'] + f'/{paste_id}', json=json_body)
+        response = await client.patch(endpoints['patch_paste'](paste_id), json=json_body)
         assert response.status == 200
         assert 'application/json' in response.headers['Content-Type']
     return _patch

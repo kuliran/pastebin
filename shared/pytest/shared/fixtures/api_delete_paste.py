@@ -13,5 +13,5 @@ async def api_delete_paste(api_delete_paste_raw, auth_client):
 @pytest.fixture
 async def api_delete_paste_raw(auth_client, endpoints):
     async def _get(paste_id: str, client: Client = auth_client):
-        return await client.delete(endpoints['delete_paste'] + f'/{paste_id}')
+        return await client.delete(endpoints['delete_paste'](paste_id))
     return _get

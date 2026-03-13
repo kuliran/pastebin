@@ -17,7 +17,7 @@ class GetPasteUrlResult:
 @pytest.fixture
 async def api_get_paste_url(auth_client, endpoints):
     async def _get(paste_id: str, *, client: Client = auth_client) -> GetPasteUrlResult:
-        response = await client.get(endpoints['get_paste_presigned_url'] + f'/{paste_id}')
+        response = await client.get(endpoints['get_paste_presigned_url'](paste_id))
         assert response.status == 200
         assert 'application/json' in response.headers['Content-Type']
 
@@ -63,7 +63,7 @@ async def api_get_paste(api_get_paste_url, s3_get, auth_client):
 @pytest.fixture
 async def api_get_paste_expect_none(auth_client, endpoints):
     async def _get(paste_id: str, *, client: Client = auth_client):
-        response = await client.get(endpoints['get_paste_presigned_url'] + f'/{paste_id}')
+        response = await client.get(endpoints['get_paste_presigned_url'](paste_id))
         assert response.status == 404
         assert 'application/json' in response.headers['Content-Type']
         assert response.text == 'null'
@@ -72,7 +72,7 @@ async def api_get_paste_expect_none(auth_client, endpoints):
 @pytest.fixture
 async def api_get_paste_expect_unauth(auth_client, endpoints):
     async def _get(paste_id: str, *, client: Client = auth_client):
-        response = await client.get(endpoints['get_paste_presigned_url'] + f'/{paste_id}')
+        response = await client.get(endpoints['get_paste_presigned_url'](paste_id))
         assert response.status == 403
         assert 'application/json' in response.headers['Content-Type']
         assert response.text == 'null'

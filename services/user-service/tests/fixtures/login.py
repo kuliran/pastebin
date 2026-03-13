@@ -12,7 +12,7 @@ class LoginResult:
 def login(endpoints, service_client):
     async def _login(username: str, password: str) -> LoginResult:
         body = {"username": username, "password": password}
-        response = await service_client.post(endpoints['auth_login'], json=body)
+        response = await service_client.post(endpoints['auth_login'](), json=body)
         assert response.status == 200
         tokens = auth.validate_response_tokens(response)
 

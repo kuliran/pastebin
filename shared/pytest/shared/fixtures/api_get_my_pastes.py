@@ -13,7 +13,7 @@ class UserPaste:
 @pytest.fixture
 async def api_get_my_pastes(auth_client, endpoints):
     async def _get(*, client: Client = auth_client) -> list[UserPaste]:
-        response = await client.get(endpoints['get_my_pastes'])
+        response = await client.get(endpoints['get_my_pastes']())
         assert response.status == 200
         assert 'application/json' in response.headers['Content-Type']
 
