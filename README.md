@@ -3,67 +3,114 @@ An online service for uploading text snippets and sharing links to them with oth
 Snippets are automatically deleted after some time (TTL).
 
 <p align="center">
-<img src="docs/media/pastebin_v1.svg"/>
+<img src="docs/media/pastebin.svg"/>
 </p>
 
 ## Important notes
 - Reads are much more frequent than creation of new blobs
-- Blobs are immutable and are deleted rarely - perfect for **caching**
+- Blobs are **directly uploaded to/downloaded from S3**, saving the backend from extra traffic
+- Users can upload up to 10 pastes per hour - rate limit by `user_id`
 - Blob size limit is 1 MB to prevent abuse
+- This is a v2 of this project, adding JWT authentication, user rate limiting, S3
 
-#### Upload path (POST):
-1. gen blob id = UUIDv4 + Base58 encoding without confusing characters (url-safe)
-2. write blob to MongoDB
-3. write metadata to Postgres
-4. return unique link to client
+## Paste privacy
+Pastes support 3 privacy modes: `public`, `friends-only`, `private`.
+<br>Users can grant pinpoint READ access to their private pastes
+<br>Users can also have *friends* and use `friends-only` privacy mode for a paste
+
+## Details
+### Upload path (POST):
+1. user requests `/create-url`
+    - generate unique blob id = UUIDv4 + Base58 encoding without confusing characters (url-safe)
+    - run a DB transaction:
+        - check user's *rate limit*, increment rate count, create a new paste with `'pending'` status
+        - apply user-provided privacy settings (rollback if input is invalid)
+    - return `PUT` presigned-url to user
+2. user uploads directly to S3
+3. user requests `/submit`
+    - get the latest VersionId from S3
+    - perform trivial validations
+    - save VersionId and `'submitted'` status
+    - respond OK to user
 
 <details>
 <summary>What if something fails?</summary>
 
-- Before blob write - blob not created. Nothing changes
-- After blob write - blob created, metadata not. **Orphan blob** will eventually be purged by MongoDB TTL
+- Crash before DB transaction in `/create-url`  -  blob id is discarded, nothing changes.
+- Crash after DB transaction in `create-url`  -  user's `create-url` rate limit remains incremented, presigned url will expire in a few minutes, pending blob will be purged in 1 day
+- If user doesn't upload anything  -  same as above ^^^
+- Crash after saving blob and setting `'submitted'` status  -  submitted blob lives longer than pending in S3, but will be purged eventually
 </details>
 
-#### Delete path (DELETE)
-1. Delete Postgres metadata
-2. Async MongoDB orphan blob delete
-3. Async nginx cache purge
+### Delete path (DELETE)
+1. delete Postgres metadata
+2. the async cleanup-job will purge orphan S3 content
 
-<details>
-<summary>What if something fails?</summary>
-
-- Metadata delete - nothing changes, respond code `500`
-- Blob delete - **orphan blob** will stay but will eventually be purged by MongoDB TTL
-- Cache purge - nginx will respond with content as if it wasn't deleted until cache becomes stale (at most 10min)
-</details>
-
-#### Read path (GET)
-1. nginx cache?
-2. cache miss:
+### Read path (GET)
+1. user requests `/{id}`
     - read metadata from Postgres: exists/not expired?
-	- read blob from MongoDB
+	- ensure user is allowed to read this
+    - return `GET` presigned-url
+2. user loads the paste directly from S3 with presigned-url
 
 ## How to run
 Run on Linux or WSL.
 1. Build service binaries: `make build`
 2. Deploy: `docker compose up --build -d`
-    - Or you can try **e2e tests**: `make e2e-install && make e2e`
+    - Or you can try **e2e tests**: `make e2e-install && make e2e-fresh`
 
 ### Development
 Development of services is done in **devcontainers**.<br>
-Alternatively, run `cd services/paste-service && make docker-test-debug`
+Alternatively, run `cd services/*-service && make docker-test-debug`
 - Note: `docker-test-debug` aborts with `StackUsageMonitor` issues - either run container in privileged mode (see `.github/worflows/build-service.yml`) or use `devcontainers`
 
-### Manual testing
+<details>
+<summary>Manual Testing</summary>
 1. Deploy the full infrastructure: `make build && docker compose up --build -d`
 2. Test endpoints:
+
 ```bash
-# Upload a paste, get "id" and "delete_key"
-curl -v -X POST -H "Host: pastebin.io" -H "Content-Type: application/json" http://localhost/api/v1/paste -d '{"text": "YOUR_TEXT"}'
+curl -v -X POST -H "Host: pastebin.io" -H "Content-Type: application/json" http://localhost/api/v2/auth/signup -d '{"username": "user", "password": "password"}' \
+| grep access_tk
+
+# EXPORT ACCESS TK
+export test_access_tk=
+
+# Upload paste step 1: create presigned url
+curl -v -X POST -H "Host: pastebin.io" \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer $test_access_tk" \
+-d '{}' \
+http://localhost/api/v2/paste/create-url \
+| grep presigned_url
+
+# Upload paste step 2: upload to S3
+read -p "enter presigned-url: " url && \
+read -p "enter text: " text && \
+curl -v -X PUT \
+-H "Content-Type: application/octet-stream" \
+-d "$text" \
+"$url"
+
+# Upload paste step 3: submit
+read -p "Enter paste_id: " paste_id && \
+curl -v -X POST -H "Host: pastebin.io" \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer $test_access_tk" \
+-d '{"paste_id": "$paste_id"}' \
+http://localhost/api/v2/paste/submit
 
 # Get paste, including metadata
-curl -v -H "Host: pastebin.io" http://localhost/api/v1/YOUR_ID
+read -p "Enter paste_id: " paste_id && \
+curl -v -H "Host: pastebin.io" \
+-H "Authorization: Bearer $test_access_tk" \
+http://localhost/api/v2/paste/$paste_id
 
-# Delete a paste by providing both its id and a secret delete key
-curl -v -X DELETE -H "Host: pastebin.io" -H "Content-Type: application/json" http://localhost/api/v1/delete/YOUR_ID -d '{"delete_key": "YOUR_KEY"}'
+# Delete a paste
+read -p "Enter paste_id: " paste_id && \
+curl -v -X DELETE -H "Host: pastebin.io" \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer $test_access_tk" \
+http://localhost/api/v2/paste/delete/$paste_id
 ```
+</details>
