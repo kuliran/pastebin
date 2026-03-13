@@ -61,3 +61,6 @@ CREATE TABLE IF NOT EXISTS pastes.private_permissions (
     user_id TEXT,
     PRIMARY KEY (paste_id, user_id)
 );
+
+-- V007__pastes_metadata_user_id_idx
+CREATE INDEX idx_pastes_metadata_owner_user_id ON pastes.metadata (owner_user_id);

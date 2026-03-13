@@ -16,7 +16,7 @@ ReadService::ReadService(const components::ComponentConfig& config, const compon
 {}
 
 utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string_view id, std::string_view user_id) const {
-    const auto metadata = metadata_repo_.GetPasteMetadata(id);
+    auto metadata = metadata_repo_.GetPasteMetadata(id);
     if (!metadata) {
         switch (metadata.error()) {
             case GetPasteMetadataError::kNotFound: return {GetPasteError::kNotExists};
@@ -41,6 +41,42 @@ utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string
 
     auto presigned_url = blob_repo_.CreatePresignedGet(id, kPresignedGetUrlTtl);
     return GetPasteResult(std::move(metadata.value()), std::move(presigned_url));
+}
+
+userver::utils::expected<GetPasteDetailsResult, GetPasteDetailsError>
+ReadService::GetPasteDetails(std::string_view id, std::string_view user_id) const {
+    auto metadata = metadata_repo_.GetPasteMetadata(id);
+    if (!metadata) {
+        switch (metadata.error()) {
+            case GetPasteMetadataError::kNotFound: return {GetPasteDetailsError::kNotExists};
+            case GetPasteMetadataError::kDbError: return {GetPasteDetailsError::kDbError};
+        }
+    }
+
+    if (user_id != metadata.value().owner_user_id) return {GetPasteDetailsError::kUnauthorized};
+    if (metadata.value().visibility != PasteVisibility::kPrivate) {
+        return GetPasteDetailsResult();
+    }
+
+    auto private_perms_user_ids = metadata_repo_.GetPastePrivatePermsUserIds(id);
+    if (!private_perms_user_ids) {
+        switch (private_perms_user_ids.error()) {
+            case GetPastePrivatePermsUserIdsError::kDbError: return {GetPasteDetailsError::kDbError};
+        }
+    }
+
+    return GetPasteDetailsResult(std::move(metadata.value()), std::move(private_perms_user_ids.value()));
+}
+
+userver::utils::expected<GetUserPastesResult, GetUserPastesError>
+ReadService::GetUserPastes(std::string_view user_id) const {
+    auto result = metadata_repo_.GetUserPastes(user_id);
+    if (!result) {
+        switch (result.error()) {
+            case GetUserPastesError::kDbError: return {GetUserPastesError::kDbError};
+        }
+    }
+    return result;
 }
 
 }

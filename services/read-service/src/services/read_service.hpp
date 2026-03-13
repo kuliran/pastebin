@@ -17,6 +17,12 @@ public:
     ReadService(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
     userver::utils::expected<dto::GetPasteResult, dto::GetPasteError> GetPaste(std::string_view id, std::string_view user_id) const;
+
+    userver::utils::expected<dto::GetPasteDetailsResult, dto::GetPasteDetailsError>
+    GetPasteDetails(std::string_view id, std::string_view user_id) const;
+
+    userver::utils::expected<dto::GetUserPastesResult, dto::GetUserPastesError>
+    GetUserPastes(std::string_view user_id) const;
 private:
     static constexpr std::chrono::seconds kPresignedGetUrlTtl = std::chrono::seconds{5*60};
 

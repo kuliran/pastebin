@@ -11,8 +11,8 @@ struct userver::storages::postgres::io::CppToUserPg<PasteVisibility> : userver::
     static constexpr DBTypeName postgres_name = "pastes.visibility";
     static constexpr Enumerator enumerators[]{
         {PasteVisibility::kPublic, "public"},
-        {PasteVisibility::kFriends, "friends"},
         {PasteVisibility::kPrivate, "private"},
+        {PasteVisibility::kFriends, "friends"},
     };
 };
 

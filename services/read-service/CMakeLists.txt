@@ -48,6 +48,8 @@ add_library(
     src/components/metadata_repo.cpp
     src/components/blob_repo.cpp
     src/handlers/get_paste.cpp
+    src/handlers/get_paste_details.cpp
+    src/handlers/get_my_pastes.cpp
 )
 target_link_libraries(
     ${PROJECT_NAME}_objs

@@ -61,6 +61,22 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
+        handler-get-my-pastes:
+            path: /api/v2/my-pastes
+            method: GET
+            task_processor: main-task-processor
+            max_request_size: 1024 # 1KB
+            auth:
+                type: bearer
+
+        handler-get-paste-details:
+            path: /api/v2/paste/details/{id}
+            method: GET
+            task_processor: main-task-processor
+            max_request_size: 1024 # 1KB
+            auth:
+                type: bearer
+
         handler-get-paste:
             path: /api/v2/paste/{id}
             method: GET

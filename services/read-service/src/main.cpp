@@ -18,6 +18,8 @@
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
 #include "handlers/get_paste.hpp"
+#include "handlers/get_paste_details.hpp"
+#include "handlers/get_my_pastes.hpp"
 
 int main(int argc, char* argv[]) {
     userver::server::handlers::auth::RegisterAuthCheckerFactory<jwt_wrapper::JwtCheckerFactory>();
@@ -37,6 +39,8 @@ int main(int argc, char* argv[]) {
             .Append<read_service::MetadataRepo>()
             .Append<read_service::BlobRepo>()
             .Append<read_service::GetPaste>()
+            .Append<read_service::GetPasteDetails>()
+            .Append<read_service::GetMyPastes>()
         ;
 
     return userver::utils::DaemonMain(argc, argv, component_list);

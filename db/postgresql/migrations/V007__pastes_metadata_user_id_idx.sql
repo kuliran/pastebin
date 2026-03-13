@@ -1,0 +1,1 @@
+CREATE INDEX idx_pastes_metadata_owner_user_id ON pastes.metadata (owner_user_id);
