@@ -70,7 +70,7 @@ components_manager:
                 type: bearer
 
         handler-get-paste-details:
-            path: /api/v2/paste/details/{id}
+            path: /api/v2/paste/{id}/details
             method: GET
             task_processor: main-task-processor
             max_request_size: 1024 # 1KB
