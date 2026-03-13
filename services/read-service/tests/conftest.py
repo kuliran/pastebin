@@ -12,8 +12,12 @@ pytest_plugins = [
     'shared.fixtures.make_pgsql',
     'shared.fixtures.auth',
     'shared.fixtures.raw_insert_paste',
+    'shared.fixtures.raw_get_paste',
     'shared.fixtures.raw_patch_paste',
+    'shared.fixtures.raw_delete_paste',
     'shared.fixtures.api_get_paste',
+    'shared.fixtures.api_get_paste_details',
+    'shared.fixtures.api_get_my_pastes',
 ]
 
 REPO_ROOT = pathlib.Path(__file__).parent.parent.parent.parent

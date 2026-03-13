@@ -4,30 +4,26 @@ from dataclasses import dataclass
 from dateutil.parser import isoparse
 from datetime import datetime
 from shared.utils.client import Client
+from shared.fixtures.raw_get_paste import GetPasteResult
 
 @dataclass
 class GetPasteUrlResult:
     presigned_url: str
     size_bytes: int
-    created_at_utc: datetime
-    expires_at_utc: datetime
-
-@dataclass
-class GetPasteResult:
-    data: str
-    size_bytes: int
+    visibility: str
     created_at_utc: datetime
     expires_at_utc: datetime
 
 @pytest.fixture
-async def api_get_paste_url(auth_client, endpoints) -> GetPasteUrlResult:
-    async def _get(paste_id: str, *, client: Client = auth_client):
+async def api_get_paste_url(auth_client, endpoints):
+    async def _get(paste_id: str, *, client: Client = auth_client) -> GetPasteUrlResult:
         response = await client.get(endpoints['get_paste_presigned_url'] + f'/{paste_id}')
         assert response.status == 200
         assert 'application/json' in response.headers['Content-Type']
 
         json = response.json()
         assert type(json['presigned_url']) is str
+        assert type(json['visibility']) is str
         assert type(json['created_at']) is str
         assert type(json['expires_at']) is str
         assert type(json['size_bytes']) is int
@@ -35,6 +31,7 @@ async def api_get_paste_url(auth_client, endpoints) -> GetPasteUrlResult:
         return GetPasteUrlResult(
             presigned_url=json['presigned_url'],
             size_bytes=json['size_bytes'],
+            visibility=json['visibility'],
             created_at_utc=isoparse(json['created_at']),
             expires_at_utc=isoparse(json['expires_at']),
         )
@@ -57,6 +54,7 @@ async def api_get_paste(api_get_paste_url, s3_get, auth_client):
         return GetPasteResult(
             data=data,
             size_bytes=response.size_bytes,
+            visibility=response.visibility,
             created_at_utc=response.created_at_utc,
             expires_at_utc=response.expires_at_utc,
         )

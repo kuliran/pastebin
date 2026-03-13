@@ -11,8 +11,8 @@ class GetPasteResult:
     expires_at_utc: datetime
 
 @pytest.fixture
-def raw_get_paste(pg_cursor, minio_server) -> GetPasteResult:
-    async def _get(paste_id: str):
+def raw_get_paste(pg_cursor, minio_server):
+    async def _get(paste_id: str) -> GetPasteResult:
         pg_cursor.execute("""
             SELECT visibility, created_at, expires_at, size_bytes, s3_version_id
             FROM pastes.metadata

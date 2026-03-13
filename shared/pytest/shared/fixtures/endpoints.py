@@ -7,6 +7,8 @@ def endpoints():
         'auth_login': '/api/v2/auth/login',
         'auth_refresh': '/api/v2/auth/refresh',
         'get_paste_presigned_url': '/api/v2/paste',
+        'get_paste_details': '/api/v2/paste/details',
+        'get_my_pastes': '/api/v2/my-pastes',
         'upload_paste_create_url': '/api/v2/paste/create-url',
         'upload_paste_submit': '/api/v2/paste/submit',
         'delete_paste': '/api/v2/paste/delete',
