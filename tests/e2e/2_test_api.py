@@ -133,6 +133,51 @@ async def test_private_perms(api_upload_paste, api_patch_paste, api_get_paste, a
     await api_get_paste(upload.paste_id, client=auth_client)
 
 # ============================================
+async def test_get_paste_details(api_upload_paste, api_delete_paste, api_get_paste_details, api_get_paste_details_raw, new_auth_client):
+    upload = await api_upload_paste("Hello, world!", visibility='private')
+
+    diff = await new_auth_client("diff_user_get_paste_details_test", "diff_user_get_paste_details_test")
+    r = await api_get_paste_details_raw(upload.paste_id, client=diff)
+    assert r.status == 403
+    details = await api_get_paste_details(upload.paste_id)
+    assert details.visibility == 'private'
+
+    await api_delete_paste(upload.paste_id)
+    r = await api_get_paste_details_raw(upload.paste_id)
+    assert r.status == 404
+    r = await api_get_paste_details_raw(upload.paste_id, client=diff)
+    assert r.status == 404
+
+async def test_get_my_pastes(api_upload_paste, api_delete_paste, api_get_my_pastes, api_patch_paste, new_auth_client):
+    upload = await api_upload_paste("Hello, world!", visibility='private')
+
+    diff = await new_auth_client("diff_user_get_my_pastes_test", "diff_user_get_my_pastes_test")
+    assert len(await api_get_my_pastes(client=diff)) == 0
+
+    r = await api_get_my_pastes()
+    assert len(r) == 1
+    assert r[0].id == upload.paste_id
+    assert r[0].visibility == 'private'
+
+    await api_patch_paste(upload.paste_id, visibility='public')
+    r = await api_get_my_pastes()
+    assert len(r) == 1
+    assert r[0].id == upload.paste_id
+    assert r[0].visibility == 'public'
+    
+    assert len(await api_get_my_pastes(client=diff)) == 0
+
+    upload2 = await api_upload_paste("Hello, world!", visibility='private', private_perms_add=[diff._user_id])
+    assert len(await api_get_my_pastes()) == 2
+    assert len(await api_get_my_pastes(client=diff)) == 0
+
+    await api_delete_paste(upload.paste_id)
+    r = await api_get_my_pastes()
+    assert len(r) == 1
+    assert r[0].id == upload2.paste_id
+    assert r[0].visibility == 'private'
+
+# ============================================
 async def test_upload_rate_limit(api_upload_create_url_raw):
     responses = []
     for _ in range(50):
