@@ -64,3 +64,14 @@ CREATE TABLE IF NOT EXISTS pastes.private_permissions (
 
 -- V007__pastes_metadata_user_id_idx
 CREATE INDEX idx_pastes_metadata_owner_user_id ON pastes.metadata (owner_user_id);
+
+-- V008__friends
+ALTER TYPE pastes.visibility ADD VALUE 'friends';
+
+CREATE TABLE IF NOT EXISTS users.friend_relations (
+    user_id TEXT,
+    friend_id TEXT,
+    PRIMARY KEY (user_id, friend_id),
+    FOREIGN KEY (user_id) REFERENCES users.accounts(id) ON DELETE CASCADE,
+    FOREIGN KEY (friend_id) REFERENCES users.accounts(id) ON DELETE CASCADE
+);
