@@ -1,6 +1,6 @@
 #pragma once
 
-#include <friend_client.usrv.pb.hpp>
+#include <friends_client.usrv.pb.hpp>
 
 namespace read_service {
 

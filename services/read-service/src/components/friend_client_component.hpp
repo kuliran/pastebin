@@ -4,7 +4,7 @@
 
 #include <userver/ugrpc/client/simple_client_component.hpp>
 
-#include <friend_service.usrv.pb.hpp>
+#include <friends_service.usrv.pb.hpp>
 
 namespace read_service {
 
