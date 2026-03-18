@@ -21,7 +21,6 @@ endif()
 find_package(
     userver
     COMPONENTS core
-               mongo
                postgresql
     QUIET
 )
@@ -53,7 +52,6 @@ add_library(
 target_link_libraries(
     ${PROJECT_NAME}_objs
     PUBLIC userver::core
-           userver::mongo
            userver::postgresql
            jwt_verifier
            jwt_issuer

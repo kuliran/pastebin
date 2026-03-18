@@ -7,7 +7,6 @@ import aiohttp
 pytest_plugins = [
     'pytest_userver.plugins.core',
     'pytest_userver.plugins.postgresql', 
-    'pytest_userver.plugins.mongo',
     'fixtures.signup',
     'fixtures.login',
     'fixtures.auth_refresh',
