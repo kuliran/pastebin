@@ -185,3 +185,111 @@ async def test_upload_rate_limit(api_upload_create_url_raw):
         responses.append(r.status)
 
     assert all(s in (201, 429) for s in responses)
+
+# ============================================
+async def test_get_friends_empty(api_get_friends, api_get_friends_raw, new_unauth_client):
+    unauth = new_unauth_client()
+    
+    friends = await api_get_friends()
+    assert len(friends) == 0
+
+    r = await api_get_friends_raw(client=unauth)
+    assert r.status in (400, 401, 403)
+
+async def test_add_rm_friend(api_get_friends, api_add_friend, api_rm_friend, new_auth_client):
+    diff = await new_auth_client('test_add_rm_friend', 'test_add_rm_friend')
+    
+    assert len(await api_get_friends()) == 0
+
+    async def add_friend_expect_one():
+        await api_add_friend(diff._user_id)
+        friends = await api_get_friends()
+        assert len(friends) == 1
+        assert friends[0] == diff._user_id
+        assert len(await api_get_friends(client=diff)) == 0
+    await add_friend_expect_one()
+    await add_friend_expect_one() # add same friend - no changes
+
+    await api_rm_friend(diff._user_id)
+    assert len(await api_get_friends()) == 0
+
+    await add_friend_expect_one()
+
+async def test_rm_non_existent_friend(api_get_friends, api_rm_friend, new_auth_client):
+    diff = await new_auth_client('test_rm_non_existent_friend', 'test_rm_non_existent_friend')
+
+    assert len(await api_get_friends()) == 0
+
+    await api_rm_friend(diff._user_id)
+    assert len(await api_get_friends()) == 0
+    await api_rm_friend('-non-existent-user-id-abcxyz-')
+    assert len(await api_get_friends()) == 0
+
+async def test_many_friends(api_get_friends, api_add_friend, api_rm_friend, new_auth_client):
+    username_prefix = 'test_many_friends_'
+
+    # add friends to a diff user
+    diff_user = await new_auth_client(f'{username_prefix}diff', f'{username_prefix}1Z')
+    diff_friends_to_add = []
+    for i in range(0, 3):
+        client = new_auth_client(f'{username_prefix}{i+100}', f'{username_prefix}1Z')
+        diff_friends_to_add.append(client)
+
+    # add our friends
+    friends_to_add = []
+    for i in range(0, 3):
+        client = new_auth_client(f'{username_prefix}{i}', f'{username_prefix}1Z')
+        friends_to_add.append(client)
+
+    assert len(await api_get_friends()) == 0
+
+    for i in range(0, len(friends_to_add)):
+        await api_add_friend(friends_to_add[i])
+    friends = await api_get_friends()
+    assert len(friends) == len(friends_to_add)
+    for i in range(0, len(friends_to_add)):
+        assert friends[i] == friends_to_add[i]
+
+
+    # check that friends of a diff user are not affected
+    async def check_diff_friends():
+        for i in range(0, len(friends_to_add)):
+            await api_add_friend(diff_friends_to_add[i])
+
+        diff_friends = await api_get_friends(client=diff_user)
+        assert len(diff_friends) == len(diff_friends_to_add)
+
+        for i in range(0, len(diff_friends_to_add)):
+            assert diff_friends[i] == diff_friends_to_add[i]
+    await check_diff_friends()
+
+
+    while friends_to_add:
+        await api_rm_friend(friends_to_add[0])
+        friends_to_add.remove(friends_to_add[0])
+
+        friends_left = await api_get_friends()
+        assert len(friends_left) == len(friends_to_add)
+        for j in range(0, len(friends_to_add)):
+            friends_left[j] == friends_to_add[j]
+
+    await check_diff_friends()
+
+async def test_friends_visibility(
+        api_add_friend, api_rm_friend,
+        api_upload_paste, new_auth_client,
+        api_get_paste, api_get_paste_expect_unauth
+):
+    diff = await new_auth_client('test_friends_visibility', 'test_friends_visibility')
+    
+    upload = await api_upload_paste('some text')
+
+    await api_get_paste_expect_unauth(upload.paste_id, client=diff._user_id)
+    await api_add_friend(diff._user_id)
+    get = await api_get_paste(upload.paste_id, client=diff._user_id)
+    assert get.data == upload.data
+
+    await api_rm_friend(diff._user_id)
+    await api_get_paste_expect_unauth(upload.paste_id, client=diff._user_id)
+
+# TODO friend limit

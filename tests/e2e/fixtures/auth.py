@@ -15,10 +15,9 @@ async def auth_client(new_auth_client):
     return await new_auth_client('test-username', 'test-pass')
 
 @pytest.fixture(scope='session')
-def new_auth_client(api, endpoints):
+def new_auth_client(api, signup_raw):
     async def _auth_client(username: str, password: str) -> Client:
-        api.clear_cookies()
-        r = await api.post(endpoints['auth_signup'](), json={'username': username, 'password': password})
+        r = await signup_raw(username, password)
         assert r.status == 201
 
         json = r.json()
@@ -42,6 +41,13 @@ def new_unauth_client(api):
             _refresh_tk=None,
         )
     return _auth_client
+
+@pytest.fixture(scope='session')
+def signup_raw(api, endpoints):
+    async def _signup(username: str, password: str):
+        api.clear_cookies()
+        return await api.post(endpoints['auth_signup'](), json={'username': username, 'password': password})
+    return _signup
 
 @pytest.fixture(scope='session')
 def login(api, login_raw):
