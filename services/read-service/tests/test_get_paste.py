@@ -39,6 +39,28 @@ async def test_private_visibility(api_get_paste_expect_unauth, api_get_paste, ra
     await raw_patch_paste(res.paste_id, private_perms_add=[other._user_id])
     await api_get_paste(res.paste_id, client=other)
 
+async def test_get_friend(mock_are_friends, raw_insert_paste, api_get_paste, new_auth_client):
+    mock_are_friends(result=True)
+
+    other = new_auth_client('other-user-id')
+
+    res = await raw_insert_paste('abc123', 'abc', visibility='friends')
+    r1 = await api_get_paste(res.paste_id)
+    r2 = await api_get_paste(res.paste_id, client=other)
+
+    import dataclasses
+    for field in dataclasses.fields(r1):
+        assert getattr(r1, field.name) == getattr(r2, field.name)
+
+async def test_get_not_friend(mock_are_friends, raw_insert_paste, api_get_paste, api_get_paste_expect_unauth, new_auth_client):
+    mock_are_friends(result=False)
+
+    other = new_auth_client('other-user-id')
+
+    res = await raw_insert_paste('abc123', 'abc', visibility='friends')
+    r1 = await api_get_paste(res.paste_id)
+    await api_get_paste_expect_unauth(res.paste_id, client=other)
+
 # =========================================
 # ============= LOCAL FIXTURES ============
 # =========================================

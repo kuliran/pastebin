@@ -5,7 +5,8 @@ import os
 
 pytest_plugins = [
     'pytest_userver.plugins.core',
-    'pytest_userver.plugins.postgresql', 
+    'pytest_userver.plugins.postgresql',
+    'pytest_userver.plugins.grpc', 
     'pytest_userver.plugins.s3api',
     'shared.fixtures.endpoints',
     'shared.fixtures.make_minio',
@@ -52,3 +53,27 @@ def service_env(minio_server):
         'S3_SECRET_KEY': minio_server["secret_key"],
         'UBSAN_OPTIONS': 'suppressions=' + str(pathlib.Path(__file__).parent / 'ubsan.supp') + ':print_stacktrace=1:print_suppressions=1'
     }
+
+# =============
+# grpc
+# =============
+
+@pytest.fixture(scope='session')
+def grpc_mockserver_endpoint():
+    return '[::1]:8091'
+
+sys.path.insert(0, 'build-debug/proto')
+import friends_pb2
+import friends_pb2_grpc
+
+@pytest.fixture
+def mock_are_friends(grpc_mockserver):
+    def _setup(*, result: bool = False, handler=None):
+        if handler is None:
+            async def handler(request, context):
+                return friends_pb2.AreFriendsResponse(are_friends=result)
+
+        grpc_mockserver.mock_factory(
+            friends_pb2_grpc.FriendsServiceServicer
+        )('AreFriends')(handler)
+    return _setup
