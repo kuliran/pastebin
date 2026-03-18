@@ -6,6 +6,9 @@ components_manager:
             worker_threads: $worker-threads
         fs-task-processor:
             worker_threads: $worker-fs-threads
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            worker_threads: $worker-grpc-threads
+            thread_name: grpc-worker
 
     default_task_processor: main-task-processor
 
@@ -91,3 +94,14 @@ components_manager:
             dns_resolver: async
             sync-start: true
             connlimit_mode: manual
+
+        grpc-client-common:
+            blocking-task-processor: grpc-blocking-task-processor
+        grpc-client-factory:
+            channel-args: {}
+        # grpc-friends-client:
+        #     endpoint: $grpc-friends-endpoint
+        #     client-name: friends
+        #     dedicated-channel-counts:
+        #         AreFriends: 3
+        #     factory-component: grpc-client-factory

@@ -8,7 +8,10 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
-#include <userver/storages/postgres/component.hpp> 
+#include <userver/storages/postgres/component.hpp>
+
+#include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/component_list.hpp>
 
 #include <userver/utils/daemon_run.hpp>
 
@@ -34,6 +37,8 @@ int main(int argc, char* argv[]) {
             .Append<userver::components::Postgres>("postgres-db-1")
             .Append<jwt_wrapper::JwtVerifierComponent>()
             .Append<Aws::AwsSdkComponent>()
+            .Append<userver::ugrpc::client::ClientFactoryComponent>()
+            .AppendComponentList(userver::ugrpc::client::MinimalComponentList())
             
             .Append<read_service::ReadService>()
             .Append<read_service::MetadataRepo>()

@@ -19,6 +19,7 @@ find_package(
     userver
     COMPONENTS core
                postgresql
+               grpc
     REQUIRED
 )
 if(NOT userver_FOUND)
@@ -55,11 +56,15 @@ target_link_libraries(
     ${PROJECT_NAME}_objs
     PUBLIC userver::core
            userver::postgresql
+           userver::grpc
            shared_models
            jwt_verifier
            shared_aws
 )
 
+# grpc
+userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS friends.proto)
+target_link_libraries(${PROJECT_NAME}_objs PUBLIC ${PROJECT_NAME}-proto)
 
 # The Service
 add_executable(${PROJECT_NAME} src/main.cpp)

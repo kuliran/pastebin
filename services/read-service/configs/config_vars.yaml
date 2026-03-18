@@ -1,11 +1,13 @@
 worker-threads: 4
 worker-fs-threads: 2
+worker-grpc-threads: 1
 logger-level: debug
 
 is-testing: false
 cache-purge-enabled: true
 
 server-port: 8080
+grpc-friends-endpoint: '[::1]:8091'
 
 pg-connection#env: POSTGRES_CONNECTION
 s3-public-endpoint#env: S3_PUBLIC_ENDPOINT
