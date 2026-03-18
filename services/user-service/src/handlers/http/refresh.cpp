@@ -1,4 +1,4 @@
-#include "handlers/refresh.hpp"
+#include "handlers/http/refresh.hpp"
 
 #include <userver/formats/json.hpp>
 

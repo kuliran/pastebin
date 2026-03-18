@@ -22,6 +22,7 @@ find_package(
     userver
     COMPONENTS core
                postgresql
+               grpc
     QUIET
 )
 if(NOT userver_FOUND)
@@ -42,22 +43,33 @@ include_directories(src)
 add_library(
     ${PROJECT_NAME}_objs OBJECT
     src/services/auth_service.cpp
+    src/services/friend_service.cpp
     src/components/auth_repo.cpp
+    src/components/friend_repo.cpp
+    src/components/friend_server_component.cpp
     src/components/cookie_factory.cpp
     src/utils/crypto.cpp
-    src/handlers/signup.cpp
-    src/handlers/login.cpp
-    src/handlers/refresh.cpp
+    src/handlers/http/signup.cpp
+    src/handlers/http/login.cpp
+    src/handlers/http/refresh.cpp
+    src/handlers/grpc/friend_server.cpp
 )
 target_link_libraries(
     ${PROJECT_NAME}_objs
     PUBLIC userver::core
            userver::postgresql
+           userver::grpc
            jwt_verifier
            jwt_issuer
            ${ARGON2_LIB}
 )
 
+# grpc
+userver_add_grpc_library(${PROJECT_NAME}-proto
+    PROTOS friends.proto
+    SOURCE_PATH ${SHARED_DIR}/proto    
+)
+target_link_libraries(${PROJECT_NAME}_objs PUBLIC ${PROJECT_NAME}-proto)
 
 # The Service
 add_executable(${PROJECT_NAME} src/main.cpp)

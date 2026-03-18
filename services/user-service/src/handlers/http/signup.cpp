@@ -1,4 +1,4 @@
-#include "handlers/login.hpp"
+#include "handlers/http/signup.hpp"
 
 #include <userver/formats/json.hpp>
 
@@ -6,7 +6,7 @@ using namespace userver;
 
 namespace user_service {
 
-Login::Login(
+Signup::Signup(
     const components::ComponentConfig& config,
     const components::ComponentContext& component_context
 )
@@ -15,7 +15,7 @@ Login::Login(
     , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 
-formats::json::Value Login::
+formats::json::Value Signup::
     HandleRequestJsonThrow(const HttpRequest& request, const Value& request_json, RequestContext&)
         const {
     using userver::server::http::HttpStatus;
@@ -31,14 +31,19 @@ formats::json::Value Login::
     std::string username = request_json["username"].As<std::string>();
     std::string password = request_json["password"].As<std::string>();
 
-    auto span = tracing::Span::CurrentSpan().CreateChild("auth_login_http");
+    auto span = tracing::Span::CurrentSpan().CreateChild("auth_signup_http");
 
-    auto result = user_service_.CreateSession(dto::UserCredentials{std::move(username), std::move(password)});
+    auto result = user_service_.CreateUser(UserCredentials{username, std::move(password)});
     if (!result) {
         switch (result.error()) {
-            case CreateSessionError::kNoUserExists:
-            case CreateSessionError::kUnauthorized: { request.SetResponseStatus(HttpStatus::kUnauthorized); return {}; }
-            case CreateSessionError::kDbError: { request.SetResponseStatus(HttpStatus::InternalServerError); return {}; }
+            case CreateUserError::kUsernameExists: {
+                LOG_DEBUG() << "cannot sign up, username already exists: " << username;
+                request.SetResponseStatus(HttpStatus::kConflict);
+                return {};
+            }
+            case CreateUserError::kInvalidPassword:
+            case CreateUserError::kInvalidUsername: { request.SetResponseStatus(HttpStatus::kBadRequest); return {}; }
+            case CreateUserError::kDbError: { request.SetResponseStatus(HttpStatus::InternalServerError); return {}; }
         }
     }
 
@@ -46,8 +51,8 @@ formats::json::Value Login::
         std::move(result.value().refresh_tk),
         result.value().access_tk_expires_at
     );
-
     request.GetHttpResponse().SetCookie(refresh_tk_cookie);
+    request.SetResponseStatus(HttpStatus::kCreated);
     return formats::json::MakeObject(
         "access_tk", std::move(result.value().access_tk),
         "user_id", std::move(result.value().user_id)

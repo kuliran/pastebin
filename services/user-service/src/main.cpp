@@ -11,15 +11,20 @@
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/storages/postgres/component.hpp>
 
+#include <userver/ugrpc/server/component_list.hpp>
+
 #include <userver/utils/daemon_run.hpp>
 
 #include "jwt/auth_checker_http.hpp"
 #include "services/auth_service.hpp"
+#include "services/friend_service.hpp"
 #include "components/auth_repo.hpp"
+#include "components/friend_repo.hpp"
+#include "components/friend_server_component.hpp"
 #include "components/cookie_factory.hpp"
-#include "handlers/signup.hpp"
-#include "handlers/login.hpp"
-#include "handlers/refresh.hpp"
+#include "handlers/http/signup.hpp"
+#include "handlers/http/login.hpp"
+#include "handlers/http/refresh.hpp"
 
 int main(int argc, char* argv[]) {
     userver::server::handlers::auth::RegisterAuthCheckerFactory<jwt_wrapper::JwtCheckerFactory>();
@@ -32,10 +37,14 @@ int main(int argc, char* argv[]) {
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
             .Append<userver::components::Postgres>("postgres-db-1")
+            .AppendComponentList(userver::ugrpc::server::MinimalComponentList())
 
             .Append<jwt_wrapper::JwtVerifierComponent>()
             .Append<user_service::AuthService>()
+            .Append<user_service::FriendService>()
             .Append<user_service::AuthRepo>()
+            .Append<user_service::FriendRepo>()
+            .Append<user_service::FriendServerComponent>()
             .Append<user_service::CookieFactory>()
             .Append<user_service::Signup>()
             .Append<user_service::Login>()

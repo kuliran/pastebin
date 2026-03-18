@@ -31,7 +31,9 @@ components_manager:
                     statement_timeout_ms: 500
 
         user-repo:
+        friend-repo:
         user-service:
+        friend-service:
         jwt-verifier:
             public-key-path: /run/secrets/public.pem
         cookie-factory:
@@ -80,3 +82,11 @@ components_manager:
             dns_resolver: async
             sync-start: true
             connlimit_mode: manual
+
+        grpc-server:
+            port: $grpc-server-port
+            port#fallback: 8091
+            completion-queue-count: 3
+ 
+        grpc-friend-server:
+            task-processor: main-task-processor
