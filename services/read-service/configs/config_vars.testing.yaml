@@ -7,7 +7,7 @@ is-testing: true
 cache-purge-enabled: false
 
 server-port: 8080
-grpc-friends-endpoint: '[::1]:8091'
+grpc-friend-endpoint: '[::1]:8091'
 
 pg-connection: postgresql://testsuite@localhost:15433/pg_db_1
 s3-public-endpoint#env: S3_PUBLIC_ENDPOINT

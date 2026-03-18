@@ -20,7 +20,7 @@
 #include "services/read_service.hpp"
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
-#include "components/friends_client_component.hpp"
+#include "components/friend_client_component.hpp"
 #include "handlers/get_paste.hpp"
 #include "handlers/get_paste_details.hpp"
 #include "handlers/get_my_pastes.hpp"
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
             .Append<read_service::ReadService>()
             .Append<read_service::MetadataRepo>()
             .Append<read_service::BlobRepo>()
-            .Append<read_service::FriendsClientComponent>()
+            .Append<read_service::FriendClientComponent>()
             .Append<read_service::GetPaste>()
             .Append<read_service::GetPasteDetails>()
             .Append<read_service::GetMyPastes>()

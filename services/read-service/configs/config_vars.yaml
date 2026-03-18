@@ -7,7 +7,7 @@ is-testing: false
 cache-purge-enabled: true
 
 server-port: 8080
-grpc-friends-endpoint: '[::1]:8091'
+grpc-friend-endpoint: '[::1]:8091'
 
 pg-connection#env: POSTGRES_CONNECTION
 s3-public-endpoint#env: S3_PUBLIC_ENDPOINT

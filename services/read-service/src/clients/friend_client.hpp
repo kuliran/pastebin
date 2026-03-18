@@ -1,12 +1,12 @@
 #pragma once
 
-#include <friends_client.usrv.pb.hpp>
+#include <friend_client.usrv.pb.hpp>
 
 namespace read_service {
 
-class FriendsClient final {
+class FriendClient final {
 public:
-    explicit FriendsClient(friends::FriendsServiceClient& raw_client)
+    explicit FriendClient(friends::FriendsServiceClient& raw_client)
         : raw_client_(raw_client) {};
 
     bool AreFriends(std::string user_id, std::string friend_id) const;
