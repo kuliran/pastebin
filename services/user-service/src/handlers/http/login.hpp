@@ -10,7 +10,7 @@ namespace user_service {
 
 class Login final : public userver::server::handlers::HttpHandlerJsonBase {
 public:
-    static constexpr std::string_view kName = "handler-login";
+    static constexpr std::string_view kName = "handler-auth-login";
 
     Login(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 

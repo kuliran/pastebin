@@ -10,7 +10,7 @@ namespace user_service {
 
 class Signup final : public userver::server::handlers::HttpHandlerJsonBase {
 public:
-    static constexpr std::string_view kName = "handler-signup";
+    static constexpr std::string_view kName = "handler-auth-signup";
 
     Signup(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 

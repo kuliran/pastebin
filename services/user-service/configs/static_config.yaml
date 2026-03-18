@@ -58,19 +58,19 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
-        handler-signup:
+        handler-auth-signup:
             path: /api/v2/auth/signup
             method: POST
             task_processor: main-task-processor
             max_request_size: 2048 # 2KB
 
-        handler-login:
+        handler-auth-login:
             path: /api/v2/auth/login
             method: POST
             task_processor: main-task-processor
             max_request_size: 2048 # 2KB
 
-        handler-refresh:
+        handler-auth-refresh:
             path: /api/v2/auth/refresh
             method: POST
             task_processor: main-task-processor
