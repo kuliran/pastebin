@@ -1,4 +1,5 @@
 #include "services/read_service.hpp"
+#include "components/friends_client_component.hpp"
 
 #include <userver/components/component.hpp>
 #include <userver/utils/uuid4.hpp>
@@ -13,6 +14,7 @@ ReadService::ReadService(const components::ComponentConfig& config, const compon
     : components::LoggableComponentBase(config, component_context)
     , metadata_repo_(component_context.FindComponent<MetadataRepo>(MetadataRepo::kName))
     , blob_repo_(component_context.FindComponent<BlobRepo>(BlobRepo::kName))
+    , friends_client_(component_context.FindComponent<FriendsClientComponent>(FriendsClientComponent::kName).GetClientWrapper())
 {}
 
 utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string_view id, std::string_view user_id) const {
@@ -28,14 +30,18 @@ utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string
         return {GetPasteError::kSoftExpired};
     }
 
-    if (metadata.value().visibility == PasteVisibility::kFriends) {
-        // TODO
-        return {GetPasteError::kUnauthorized};
-    } else if (metadata.value().visibility == PasteVisibility::kPrivate) {
-        if (user_id != metadata.value().owner_user_id
-            && !metadata_repo_.UserHasAccessToPrivatePaste(id, user_id)
-        ) {
-            return {GetPasteError::kUnauthorized};
+    if (user_id != metadata.value().owner_user_id) {
+        if (metadata.value().visibility == PasteVisibility::kFriends) {
+            if (!friends_client_.AreFriends(
+                std::string(user_id),
+                metadata.value().owner_user_id
+            )) {
+                return {GetPasteError::kUnauthorized};
+            }
+        } else if (metadata.value().visibility == PasteVisibility::kPrivate) {
+            if (!metadata_repo_.UserHasAccessToPrivatePaste(id, user_id)) {
+                return {GetPasteError::kUnauthorized};
+            }
         }
     }
 

@@ -99,9 +99,9 @@ components_manager:
             blocking-task-processor: grpc-blocking-task-processor
         grpc-client-factory:
             channel-args: {}
-        # grpc-friends-client:
-        #     endpoint: $grpc-friends-endpoint
-        #     client-name: friends
-        #     dedicated-channel-counts:
-        #         AreFriends: 3
-        #     factory-component: grpc-client-factory
+        grpc-friends-client:
+            endpoint: $grpc-friends-endpoint
+            client-name: friends
+            dedicated-channel-counts:
+                AreFriends: 3
+            factory-component: grpc-client-factory

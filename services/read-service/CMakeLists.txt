@@ -51,6 +51,7 @@ add_library(
     src/handlers/get_paste.cpp
     src/handlers/get_paste_details.cpp
     src/handlers/get_my_pastes.cpp
+    src/clients/friends_client.cpp
 )
 target_link_libraries(
     ${PROJECT_NAME}_objs

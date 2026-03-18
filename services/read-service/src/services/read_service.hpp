@@ -2,6 +2,7 @@
 
 #include "components/metadata_repo.hpp"
 #include "components/blob_repo.hpp"
+#include "clients/friends_client.hpp"
 #include "services/dto/paste_dto.hpp"
 
 #include <userver/components/component_base.hpp>
@@ -28,6 +29,7 @@ private:
 
     MetadataRepo& metadata_repo_;
     BlobRepo& blob_repo_;
+    FriendsClient& friends_client_;
 };
 
 }
