@@ -18,7 +18,7 @@ public:
         const override;
 
 private:
-    AuthService& user_service_;
+    AuthService& auth_service_;
     CookieFactory& cookie_factory_;
 };
 

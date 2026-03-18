@@ -11,7 +11,7 @@ Refresh::Refresh(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , user_service_(component_context.FindComponent<AuthService>(AuthService::kName))
+    , auth_service_(component_context.FindComponent<AuthService>(AuthService::kName))
     , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 
@@ -29,7 +29,7 @@ formats::json::Value Refresh::
     auto span = tracing::Span::CurrentSpan().CreateChild("auth_refresh_http");
 
     auto refresh_tk = request.GetCookie(CookieFactory::kRefreshTkCookieName);
-    auto result = user_service_.RefreshSession(refresh_tk);
+    auto result = auth_service_.RefreshSession(refresh_tk);
     if (!result) {
         switch (result.error()) {
             case RefreshSessionError::kNoUserExists:

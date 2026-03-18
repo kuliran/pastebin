@@ -11,7 +11,7 @@ Login::Login(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , user_service_(component_context.FindComponent<AuthService>(AuthService::kName))
+    , auth_service_(component_context.FindComponent<AuthService>(AuthService::kName))
     , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 
@@ -33,7 +33,7 @@ formats::json::Value Login::
 
     auto span = tracing::Span::CurrentSpan().CreateChild("auth_login_http");
 
-    auto result = user_service_.CreateSession(dto::UserCredentials{std::move(username), std::move(password)});
+    auto result = auth_service_.CreateSession(dto::UserCredentials{std::move(username), std::move(password)});
     if (!result) {
         switch (result.error()) {
             case CreateSessionError::kNoUserExists:

@@ -11,7 +11,7 @@ Signup::Signup(
     const components::ComponentContext& component_context
 )
     : HttpHandlerJsonBase(config, component_context)
-    , user_service_(component_context.FindComponent<AuthService>(AuthService::kName))
+    , auth_service_(component_context.FindComponent<AuthService>(AuthService::kName))
     , cookie_factory_(component_context.FindComponent<CookieFactory>(CookieFactory::kName))
 {}
 
@@ -33,7 +33,7 @@ formats::json::Value Signup::
 
     auto span = tracing::Span::CurrentSpan().CreateChild("auth_signup_http");
 
-    auto result = user_service_.CreateUser(UserCredentials{username, std::move(password)});
+    auto result = auth_service_.CreateUser(UserCredentials{username, std::move(password)});
     if (!result) {
         switch (result.error()) {
             case CreateUserError::kUsernameExists: {
