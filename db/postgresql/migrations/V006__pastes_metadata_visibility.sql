@@ -6,7 +6,12 @@ ALTER TABLE pastes.metadata
 CREATE TABLE IF NOT EXISTS pastes.private_permissions (
     paste_id TEXT,
     user_id TEXT,
-    PRIMARY KEY (paste_id, user_id),
-    FOREIGN KEY (user_id) REFERENCES users.accounts(id) ON DELETE CASCADE,
-    FOREIGN KEY (paste_id) REFERENCES pastes.metadata(id) ON DELETE CASCADE
+    PRIMARY KEY (paste_id, user_id)
 );
+
+ALTER TABLE pastes.private_permissions
+    ADD CONSTRAINT fk_user_id
+    FOREIGN KEY (user_id) REFERENCES users.accounts(id) ON DELETE CASCADE;
+ALTER TABLE pastes.private_permissions
+    ADD CONSTRAINT fk_paste_id
+    FOREIGN KEY (paste_id) REFERENCES pastes.metadata(id) ON DELETE CASCADE;
