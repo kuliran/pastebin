@@ -12,5 +12,8 @@ def endpoints():
         'upload_paste_create_url': lambda: '/api/v2/paste/create-url',
         'upload_paste_submit': lambda: f'/api/v2/paste/submit/',
         'delete_paste': lambda paste_id: f'/api/v2/paste/delete/{paste_id}',
-        'patch_paste': lambda paste_id: f'/api/v2/paste/patch/{paste_id}'
+        'patch_paste': lambda paste_id: f'/api/v2/paste/patch/{paste_id}',
+        'get_friends': lambda: f'/api/v2/friends',
+        'add_friend': lambda user_id: f'/api/v2/friends/{user_id}',
+        'rm_friend': lambda user_id: f'/api/v2/friends/{user_id}',
     }

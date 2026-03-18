@@ -15,3 +15,14 @@ def new_auth_client(service_client):
             _user_id=user_id,
         )
     return _new_auth_client
+
+@pytest.fixture
+def new_unauth_client(service_client):
+    def _unauth_client() -> Client:
+        return Client(
+            _client=service_client,
+            _user_id="unauth-user-id",
+            _access_tk=None,
+            _refresh_tk=None,
+        )
+    return _unauth_client

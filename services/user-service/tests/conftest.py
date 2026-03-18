@@ -11,6 +11,8 @@ pytest_plugins = [
     'fixtures.signup',
     'fixtures.login',
     'fixtures.auth_refresh',
+    'shared.fixtures.auth',
+    'shared.fixtures.api_friends',
     'shared.fixtures.endpoints',
     'shared.fixtures.make_pgsql',
 ]
