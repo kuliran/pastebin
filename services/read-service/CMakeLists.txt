@@ -64,7 +64,10 @@ target_link_libraries(
 )
 
 # grpc
-userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS friends.proto)
+userver_add_grpc_library(${PROJECT_NAME}-proto
+    PROTOS friends.proto
+    SOURCE_PATH ${SHARED_DIR}/proto    
+)
 target_link_libraries(${PROJECT_NAME}_objs PUBLIC ${PROJECT_NAME}-proto)
 
 # The Service
