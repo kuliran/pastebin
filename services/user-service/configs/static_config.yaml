@@ -30,10 +30,11 @@ components_manager:
                     network_timeout_ms: 750
                     statement_timeout_ms: 500
 
-        user-repo:
+        auth-repo:
         friend-repo:
-        user-service:
+        auth-service:
         friend-service:
+            max-friends: 5
         jwt-verifier:
             public-key-path: /run/secrets/public.pem
         cookie-factory:
@@ -75,6 +76,30 @@ components_manager:
             method: POST
             task_processor: main-task-processor
             max_request_size: 2048 # 2KB
+
+        handler-get-friends:
+            path: /api/v2/friends
+            method: GET
+            task_processor: main-task-processor
+            max_request_size: 1024 # 1KB
+            auth:
+                type: bearer
+
+        handler-add-friend:
+            path: /api/v2/friends/{user_id}
+            method: POST
+            task_processor: main-task-processor
+            max_request_size: 2048 # 2KB
+            auth:
+                    type: bearer
+
+        handler-rm-friend:
+            path: /api/v2/friends/{user_id}
+            method: DELETE
+            task_processor: main-task-processor
+            max_request_size: 2048 # 2KB
+            auth:
+                type: bearer
 
         postgres-db-1:
             dbconnection: $pg-connection

@@ -39,7 +39,7 @@ using RefreshSessionRepoError = CreateSessionRepoError;
 
 class AuthRepo final : public userver::components::LoggableComponentBase {
 public:
-    static constexpr std::string_view kName = "user-repo";
+    static constexpr std::string_view kName = "auth-repo";
 
     AuthRepo(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 

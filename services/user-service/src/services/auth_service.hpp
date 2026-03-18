@@ -11,7 +11,7 @@ namespace user_service {
 
 class AuthService final : public userver::components::LoggableComponentBase {
 public:
-    static constexpr std::string_view kName = "user-service";
+    static constexpr std::string_view kName = "auth-service";
 
     AuthService(const userver::components::ComponentConfig&, const userver::components::ComponentContext&);
 
@@ -24,10 +24,6 @@ public:
     userver::utils::expected<dto::RefreshSessionResult, dto::RefreshSessionError>
     RefreshSession(const std::string& refresh_tk) const;
 
-    // userver::utils::expected<bool, dto::GetFriendsError> AreFriends(std::string_view user_id, std::string_view friend_id) const;
-    // userver::utils::expected<dto::GetFriendsResult, dto::GetFriendsError> GetFriends(std::string_view user_id) const;
-    // userver::utils::expected<dto::AddFriendResult, dto::AddFriendError> AddFriend(std::string_view user_id, std::string_view friend_id) const;
-    // userver::utils::expected<dto::RemoveFriendResult, dto::RemoveFriendError> RemoveFriend(std::string_view user_id, std::string_view friend_id) const;
 private:
     static std::string ReadFile(std::string_view path) {
         std::ifstream f(path.data());

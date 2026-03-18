@@ -52,6 +52,9 @@ add_library(
     src/handlers/http/signup.cpp
     src/handlers/http/login.cpp
     src/handlers/http/refresh.cpp
+    src/handlers/http/get_friends.cpp
+    src/handlers/http/add_friend.cpp
+    src/handlers/http/rm_friend.cpp
     src/handlers/grpc/friend_server.cpp
 )
 target_link_libraries(

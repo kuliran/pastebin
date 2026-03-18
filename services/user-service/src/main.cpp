@@ -25,6 +25,9 @@
 #include "handlers/http/signup.hpp"
 #include "handlers/http/login.hpp"
 #include "handlers/http/refresh.hpp"
+#include "handlers/http/get_friends.hpp"
+#include "handlers/http/add_friend.hpp"
+#include "handlers/http/rm_friend.hpp"
 
 int main(int argc, char* argv[]) {
     userver::server::handlers::auth::RegisterAuthCheckerFactory<jwt_wrapper::JwtCheckerFactory>();
@@ -49,6 +52,9 @@ int main(int argc, char* argv[]) {
             .Append<user_service::Signup>()
             .Append<user_service::Login>()
             .Append<user_service::Refresh>()
+            .Append<user_service::GetFriends>()
+            .Append<user_service::AddFriend>()
+            .Append<user_service::RmFriend>()
         ;
 
     return userver::utils::DaemonMain(argc, argv, component_list);
