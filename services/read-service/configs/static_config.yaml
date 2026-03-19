@@ -103,5 +103,5 @@ components_manager:
             endpoint: $grpc-friend-endpoint
             client-name: friend
             dedicated-channel-counts:
-                AreFriends: 3
+                IsFriend: 3
             factory-component: grpc-client-factory

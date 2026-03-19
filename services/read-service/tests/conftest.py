@@ -67,13 +67,13 @@ import friends_pb2
 import friends_pb2_grpc
 
 @pytest.fixture
-def mock_are_friends(grpc_mockserver):
+def mock_is_friend(grpc_mockserver):
     def _setup(*, result: bool = False, handler=None):
         if handler is None:
             async def handler(request, context):
-                return friends_pb2.AreFriendsResponse(are_friends=result)
+                return friends_pb2.IsFriendResponse(is_friend=result)
 
         grpc_mockserver.mock_factory(
             friends_pb2_grpc.FriendsServiceServicer
-        )('AreFriends')(handler)
+        )('IsFriend')(handler)
     return _setup

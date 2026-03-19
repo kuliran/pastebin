@@ -9,7 +9,7 @@ public:
     explicit FriendClient(friends::FriendsServiceClient& raw_client)
         : raw_client_(raw_client) {};
 
-    bool AreFriends(std::string user_id, std::string friend_id) const;
+    bool IsFriend(std::string user_id, std::string friend_id) const;
 
 private:
     friends::FriendsServiceClient& raw_client_;

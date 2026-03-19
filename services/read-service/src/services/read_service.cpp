@@ -32,7 +32,7 @@ utils::expected<GetPasteResult, GetPasteError> ReadService::GetPaste(std::string
 
     if (user_id != metadata.value().owner_user_id) {
         if (metadata.value().visibility == PasteVisibility::kFriends) {
-            if (!friend_client_.AreFriends(
+            if (!friend_client_.IsFriend(
                 metadata.value().owner_user_id,
                 std::string(user_id)
             )) {
