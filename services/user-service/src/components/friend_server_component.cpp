@@ -10,6 +10,8 @@ namespace user_service {
 FriendServerComponent::FriendServerComponent(const components::ComponentConfig& config, const components::ComponentContext& component_context)
     : ugrpc::server::ServiceComponentBase(config, component_context)
     , server_(component_context.FindComponent<FriendService>(FriendService::kName))
-{}
+{
+    RegisterService(server_);
+}
 
 }
