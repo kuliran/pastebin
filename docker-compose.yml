@@ -16,9 +16,10 @@ services:
       - "127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -p ${POSTGRES_PORT}"]
-      interval: 10s
-      timeout: 5s
+      interval: 3s
+      timeout: 3s
       retries: 5
+      start_period: 3s
     networks:
       - main
     deploy:
@@ -56,10 +57,10 @@ services:
       - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${MINIO_PORT}/minio/health/live"]
-      interval: 5s
+      interval: 3s
       timeout: 3s
       retries: 5
-      start_period: 5s
+      start_period: 3s
     networks:
       - main
 
@@ -111,9 +112,9 @@ services:
       - main
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
-      interval: 15s
-      timeout: 5s
-      retries: 20
+      interval: 2s
+      timeout: 2s
+      retries: 8
     deploy:
       resources:
         limits:
@@ -150,9 +151,9 @@ services:
       - main
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
-      interval: 15s
-      timeout: 5s
-      retries: 20
+      interval: 2s
+      timeout: 2s
+      retries: 8
     deploy:
       resources:
         limits:
@@ -183,9 +184,9 @@ services:
       - main
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/ping"]
-      interval: 15s
-      timeout: 5s
-      retries: 20
+      interval: 2s
+      timeout: 2s
+      retries: 8
     deploy:
       resources:
         limits:
