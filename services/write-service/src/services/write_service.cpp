@@ -81,10 +81,11 @@ utils::expected<CreateUploadPresignedUrlResult, CreateUploadPresignedUrlError> W
         unit.Commit();
 
         return dto::CreateUploadPresignedUrlResult{
-            .presigned_url = std::move(presigned_url)
+            .presigned_url = std::move(presigned_url),
+            .paste_id = std::move(metadata.id),
         };
     }
-    
+
     LOG_WARNING() << "Upload id gen exceeded max number of retries";
     return {CreateUploadPresignedUrlError::kIdCollisionRetryExceeded};
 }
@@ -98,7 +99,7 @@ WriteService::SubmitUpload(std::string paste_id, std::string_view user_id) const
     if (!blob_s3_meta) {
         switch (blob_s3_meta.error()) {
             case GetPendingBlobMetadataError::kNotFound:
-                LOG_DEBUG() << "GetPendingBlobMetadataError NotFound paste_id=" << paste_id << " user_id=" << user_id;
+                LOG_DEBUG() << "GetPendingBlobMetadataError NotFound";
                 return {SubmitUploadError::kBlobNotExists};
             case GetPendingBlobMetadataError::kDbError: return {SubmitUploadError::kDbError};
         }
@@ -114,8 +115,8 @@ WriteService::SubmitUpload(std::string paste_id, std::string_view user_id) const
         switch (blob_submit.error()) {
             case SubmitBlobError::kNotFound:
                 LOG_DEBUG()
-                    << "SubmitBlobError NotFound paste_id=" << paste_id << " user_id=" << user_id
-                    << " version_id=" << blob_s3_meta.value().version_id;
+                    << "SubmitBlobError NotFound version_id="
+                    << blob_s3_meta.value().version_id;
                 return {SubmitUploadError::kBlobNotExists};
             case SubmitBlobError::kDbError: return {SubmitUploadError::kDbError};
         }
@@ -130,7 +131,7 @@ WriteService::SubmitUpload(std::string paste_id, std::string_view user_id) const
     if (metadata_err) {
         switch (*metadata_err) {
             case SubmitUploadMetadataError::kConflict:
-                LOG_DEBUG() << "SubmitUploadMetadataError Conflict paste_id=" << paste_id << " user_id=" << user_id;
+                LOG_DEBUG() << "SubmitUploadMetadataError Conflict";
                 return {SubmitUploadError::kConflict};
             case SubmitUploadMetadataError::kDbError: return {SubmitUploadError::kDbError};
         }

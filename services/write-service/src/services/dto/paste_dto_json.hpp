@@ -12,6 +12,7 @@ inline userver::formats::json::Value Serialize(
 ) {
     userver::formats::json::ValueBuilder b;
     b["presigned_url"] = p.presigned_url;
+    b["paste_id"] = p.paste_id;
     return b.ExtractValue();
 }
 

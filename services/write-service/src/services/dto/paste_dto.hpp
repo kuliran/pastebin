@@ -6,6 +6,7 @@ namespace write_service::dto {
 
 struct CreateUploadPresignedUrlResult {
     std::string presigned_url;
+    std::string paste_id;
 };
 enum class CreateUploadPresignedUrlError {
     kInvalidLifetimeParam,
