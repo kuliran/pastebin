@@ -26,7 +26,7 @@ public:
     userver::utils::expected<int32_t, GetFriendCountError> GetFriendCount(UnitOfWork& u, std::string user_id) const;
     std::optional<AddFriendRepoError> AddFriend(UnitOfWork& u, std::string user_id, std::string friend_id) const;
     std::optional<RmFriendError> RmFriend(std::string user_id, std::string friend_id) const;
-    userver::utils::expected<bool, dto::AreFriendsError> AreFriends(std::string user_id, std::string friend_id) const;
+    userver::utils::expected<bool, dto::IsFriendError> IsFriend(std::string user_id, std::string friend_id) const;
 
 private:
     static constexpr std::string_view kDefaultPgComponent = "postgres-db-1";

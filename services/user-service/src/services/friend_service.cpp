@@ -53,10 +53,10 @@ FriendService::RmFriend(std::string user_id, std::string friend_id) const {
     return RmFriendResult{};
 }
 
-expected<bool, AreFriendsError> FriendService::AreFriends(std::string user_id, std::string friend_id) const {
+expected<bool, IsFriendError> FriendService::IsFriend(std::string user_id, std::string friend_id) const {
     if (user_id == friend_id) return false;
 
-    auto result = friend_repo_.AreFriends(std::move(user_id), std::move(friend_id));
+    auto result = friend_repo_.IsFriend(std::move(user_id), std::move(friend_id));
     if (!result) return {result.error()};
 
     return result.value();

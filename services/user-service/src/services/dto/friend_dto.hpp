@@ -11,5 +11,5 @@ namespace user_service::dto {
     enum class AddFriendError { kInvalidInput, kFriendLimitReached, kDbError };
     struct RmFriendResult{};
 
-    enum class AreFriendsError { kDbError };
+    enum class IsFriendError { kDbError };
 }

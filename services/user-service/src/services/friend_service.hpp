@@ -17,7 +17,7 @@ public:
     userver::utils::expected<dto::GetFriendsResult, dto::GetFriendsError> GetFriends(std::string user_id) const;
     userver::utils::expected<dto::AddFriendResult, dto::AddFriendError> AddFriend(std::string user_id, std::string friend_id) const;
     userver::utils::expected<dto::RmFriendResult, RmFriendError> RmFriend(std::string user_id, std::string friend_id) const;
-    userver::utils::expected<bool, dto::AreFriendsError> AreFriends(std::string user_id, std::string friend_id) const;
+    userver::utils::expected<bool, dto::IsFriendError> IsFriend(std::string user_id, std::string friend_id) const;
 
     static userver::yaml_config::Schema GetStaticConfigSchema();
 

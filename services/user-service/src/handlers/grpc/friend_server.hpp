@@ -11,7 +11,7 @@ public:
     explicit FriendServer(FriendService& friend_service)
         : friend_service_(friend_service) {}
 
-    AreFriendsResult AreFriends(CallContext&, friends::AreFriendsRequest&&);
+    IsFriendResult IsFriend(CallContext&, friends::IsFriendRequest&&);
 
 private:
     FriendService& friend_service_;

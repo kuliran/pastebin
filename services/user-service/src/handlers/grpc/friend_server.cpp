@@ -6,18 +6,18 @@ using namespace userver;
 
 namespace user_service {
 
-FriendServer::AreFriendsResult FriendServer::AreFriends(CallContext&, friends::AreFriendsRequest&& request) {
-    friends::AreFriendsResponse response;
+FriendServer::IsFriendResult FriendServer::IsFriend(CallContext&, friends::IsFriendRequest&& request) {
+    friends::IsFriendResponse response;
 
-    auto result = friend_service_.AreFriends(request.user_id(), request.friend_id());
+    auto result = friend_service_.IsFriend(request.user_id(), request.friend_id());
     if (!result) {
         switch (result.error()) {
-            case dto::AreFriendsError::kDbError:
+            case dto::IsFriendError::kDbError:
                 throw ugrpc::server::ErrorWithStatus(grpc::StatusCode::INTERNAL, "Internal DB error");
         }
     }
 
-    response.set_are_friends(result.value());
+    response.set_is_friend(result.value());
     return response;
 }
 

@@ -92,7 +92,7 @@ std::optional<RmFriendError> FriendRepo::RmFriend(std::string user_id, std::stri
     }
 }
 
-expected<bool, AreFriendsError> FriendRepo::AreFriends(std::string user_id, std::string friend_id) const {
+expected<bool, IsFriendError> FriendRepo::IsFriend(std::string user_id, std::string friend_id) const {
     try {
         const auto result = pg_cluster_->Execute(
             storages::postgres::ClusterHostType::kMaster,
@@ -106,7 +106,7 @@ expected<bool, AreFriendsError> FriendRepo::AreFriends(std::string user_id, std:
         return !result.IsEmpty();
     } catch(const storages::postgres::Error& e) {
         LOG_ERROR() << "DB error: " << e.what();
-        return {AreFriendsError::kDbError};
+        return {IsFriendError::kDbError};
     }
 }
 
