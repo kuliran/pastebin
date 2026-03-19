@@ -55,7 +55,7 @@ Pastes support 3 privacy modes: `public`, `friends-only`, `private`.
 
 ## How to run
 Run on Linux or WSL.
-1. Build service binaries: `make build`
+1. Build service binaries: `make build-all`
 2. Deploy: `docker compose up --build -d`
     - Or you can try **e2e tests**: `make e2e-install && make e2e-fresh`
 
@@ -66,7 +66,7 @@ Alternatively, run `cd services/*-service && make docker-test-debug`
 
 <details>
 <summary>Manual Testing</summary>
-1. Deploy the full infrastructure: `make build && docker compose up --build -d`
+1. Deploy the full infrastructure: `make build-all && docker compose up --build -d`
 2. Test endpoints:
 
 ```bash

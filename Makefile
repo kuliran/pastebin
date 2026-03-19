@@ -6,11 +6,16 @@ e2e-install:
 	python3 -m venv tests/venv
 	tests/venv/bin/pip install -r tests/requirements.txt
 
-.PHONY: build
-build:
-	cd services/read-service && make docker-cmake-release DOCKER_ENV="ENABLE_TESTSUITE=OFF" && make docker-build-release
-	cd services/write-service && make docker-cmake-release DOCKER_ENV="ENABLE_TESTSUITE=OFF" && make docker-build-release
-	cd services/user-service && make docker-cmake-release DOCKER_ENV="ENABLE_TESTSUITE=OFF" && make docker-build-release
+SERVICES := read write user
+
+.PHONY: build $(addprefix build-, $(SERVICES))
+build: $(addprefix build-, $(SERVICES))
+
+$(addprefix build-, $(SERVICES)): build-%:
+	cd services/$*-service && make docker-cmake-release DOCKER_ENV="ENABLE_TESTSUITE=OFF" && make docker-build-release
+
+.PHONY: build-all
+build-all: build-read build-write build-user
 
 # Run all containers for e2e tests
 .PHONY: e2e-up
