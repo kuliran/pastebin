@@ -26,12 +26,17 @@ formats::json::Value RmFriend::
 
     auto span = tracing::Span::CurrentSpan().CreateChild("rm_friend_http");
     span.AddTag("user_id", user_id);
+    span.AddTag("friend_id", friend_id);
+
+    LOG_DEBUG() << "Rm friend: try";
 
     auto result = friend_service_.RmFriend(user_id, friend_id);
     if (!result) {
         switch (result.error()) {
             case RmFriendError::kDbError: { request.SetResponseStatus(HttpStatus::InternalServerError); return {}; }
         }
+    } else {
+        LOG_DEBUG() << "Rm friend: success";
     }
 
     request.SetResponseStatus(HttpStatus::kNoContent);

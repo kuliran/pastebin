@@ -26,6 +26,9 @@ formats::json::Value AddFriend::
 
     auto span = tracing::Span::CurrentSpan().CreateChild("add_friend_http");
     span.AddTag("user_id", user_id);
+    span.AddTag("friend_id", friend_id);
+
+    LOG_DEBUG() << "Add friend: try";
 
     auto result = friend_service_.AddFriend(user_id, friend_id);
     if (!result) {
@@ -37,6 +40,8 @@ formats::json::Value AddFriend::
             }
             case AddFriendError::kDbError: { request.SetResponseStatus(HttpStatus::InternalServerError); return {}; }
         }
+    } else {
+        LOG_DEBUG() << "Add friend: success";
     }
 
     return {};
