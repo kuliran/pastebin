@@ -16,7 +16,8 @@ Snippets are automatically deleted after some time (TTL).
 ## Paste privacy
 Pastes support 3 privacy modes: `public`, `friends-only`, `private`.
 <br>Users can grant pinpoint READ access to their private pastes
-<br>Users can also have *friends* and use `friends-only` privacy mode for a paste
+<br>Users can also mark other users as *friends* and use `friends-only` privacy mode for a paste
+<br>*Friendship is unidirectional*: if a user marks you as a friend, you can read their pastes, but they cannot read yours, unless you friend them too
 
 ## Details
 ### Upload path (POST):
