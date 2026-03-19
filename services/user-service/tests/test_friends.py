@@ -27,25 +27,17 @@ async def test_friends(api_get_friends, api_add_friend, api_rm_friend, new_auth_
     friends = await api_get_friends()
     assert len(friends) == 0
 
-    # add
-    await api_add_friend(diff_client._user_id)
-    r = await api_get_friends()
-    assert len(r) == 1
-    assert r[0] == diff_client._user_id
+    async def add_friend_expect_one():
+        await api_add_friend(diff_client._user_id)
+        r = await api_get_friends()
+        assert len(r) == 1
+        assert r[0] == diff_client._user_id
 
-    # add again - no changes
-    await api_add_friend(diff_client._user_id)
-    r = await api_get_friends()
-    assert len(r) == 1
-    assert r[0] == diff_client._user_id
+    await add_friend_expect_one()  # add
+    await add_friend_expect_one()  # add again - no changes
 
     # rm
     await api_rm_friend(diff_client._user_id)
-    r = await api_get_friends()
-    assert len(r) == 0
-
-    # add again
-    await api_add_friend(diff_client._user_id)
-    r = await api_get_friends()
-    assert len(r) == 1
-    assert r[0] == diff_client._user_id
+    assert len(await api_get_friends()) == 0
+    
+    await add_friend_expect_one()  # add again
