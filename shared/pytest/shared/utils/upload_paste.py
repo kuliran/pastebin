@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from urllib.parse import urlparse
 
 @dataclass
 class UploadCreateUrlResult:
@@ -30,7 +29,3 @@ class UploadPasteResult:
     created_at_utc: datetime
     expires_at_utc: datetime
     size_bytes: int
-
-
-def get_paste_id(presigned_url: str) -> str:
-    return urlparse(presigned_url).path.lstrip("/").split("/")[-1]

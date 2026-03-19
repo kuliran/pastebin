@@ -25,7 +25,8 @@ async def api_upload_create_url(pg_cursor, auth_client, api_upload_create_url_ra
         presigned_url = json['presigned_url']
         assert type(presigned_url) is str
 
-        paste_id = get_paste_id(presigned_url)
+        paste_id = json['paste_id']
+        assert type(paste_id) is str
         assert 1 <= len(paste_id) <= 64
 
         # Postgres validation
